@@ -13,6 +13,58 @@ import (
 	"github.com/BuddhiLW/arara/internal/pkg/vars"
 )
 
+func autoAddNamespace(path string) error {
+	// Check if directory contains arara.yaml
+	configPath := filepath.Join(path, "arara.yaml")
+	if _, err := os.Stat(configPath); err != nil {
+		return fmt.Errorf("no arara.yaml found in %s", path)
+	}
+
+	// Load config to get name
+	cfg, err := config.LoadConfig(configPath)
+	if err != nil {
+		return err
+	}
+
+	// Use directory name as namespace if not specified
+	nsName := cfg.Name
+	if nsName == "" {
+		nsName = filepath.Base(path)
+	}
+
+	// Check if namespace already exists
+	gc, err := config.NewGlobalConfig()
+	if err != nil {
+		return err
+	}
+
+	for _, ns := range gc.Config.Namespaces {
+		if ns == nsName {
+			// Already exists, just switch to it
+			bonzaiVars.Data.Set(vars.ActiveNamespaceVar, nsName)
+			bonzaiVars.Data.Set(vars.DotfilesPathVar, path)
+			return nil
+		}
+	}
+
+	// Add new namespace
+	gc.Config.Namespaces = append(gc.Config.Namespaces, nsName)
+	gc.Config.Configs[nsName] = config.NSInfo{
+		Path: path,
+	}
+
+	if err := gc.Save(); err != nil {
+		return fmt.Errorf("failed to save config: %w", err)
+	}
+
+	// Switch to new namespace
+	bonzaiVars.Data.Set(vars.ActiveNamespaceVar, nsName)
+	bonzaiVars.Data.Set(vars.DotfilesPathVar, path)
+
+	fmt.Printf("Added and switched to namespace '%s' (%s)\n", nsName, path)
+	return nil
+}
+
 var Cmd = &bonzai.Cmd{
 	Name:  "list",
 	Alias: "l",
@@ -32,8 +84,14 @@ Commands:
 	},
 	Do: func(caller *bonzai.Cmd, args ...string) error {
 		// Try local first
-		if _, err := os.Stat("arara.yaml"); err == nil {
-			return localCmd.Do(caller, args...)
+		if pwd, err := os.Getwd(); err == nil {
+			if _, err := os.Stat("arara.yaml"); err == nil {
+				// Found local arara.yaml, try to auto-add namespace
+				if err := autoAddNamespace(pwd); err != nil {
+					return err
+				}
+				return localCmd.Do(caller, args...)
+			}
 		}
 		// Fallback to global
 		return globalCmd.Do(caller, args...)
