@@ -14,7 +14,7 @@ import (
 var Cmd = &bonzai.Cmd{
 	Name:  "build",
 	Alias: "b",
-	Short: "Execute or list build steps from arara.yaml",
+	Short: "execute or list build steps from arara.yaml",
 	Cmds:  []*bonzai.Cmd{help.Cmd, listCmd, installCmd},
 }
 
@@ -22,7 +22,7 @@ var Cmd = &bonzai.Cmd{
 var listCmd = &bonzai.Cmd{
 	Name:  "list",
 	Alias: "ls",
-	Short: "List available build steps",
+	Short: "list available build steps",
 	Cmds:  []*bonzai.Cmd{help.Cmd},
 	Do: func(caller *bonzai.Cmd, args ...string) error {
 		// TODO: Read from arara.yaml and display build steps
@@ -38,7 +38,7 @@ var listCmd = &bonzai.Cmd{
 var installCmd = &bonzai.Cmd{
 	Name:  "install",
 	Alias: "i",
-	Short: "Execute fresh dotfiles installation",
+	Short: "execute fresh dotfiles installation",
 	Cmds:  []*bonzai.Cmd{help.Cmd},
 	Do: func(caller *bonzai.Cmd, args ...string) error {
 		fmt.Println("Executing build steps...")

@@ -102,7 +102,7 @@ setup:
   backup_dirs:
     - "$HOME/.config"
     - "$HOME/.local"
-  
+
   # Core symlinks
   core_links:
     - source: "$DOTFILES/.config"
@@ -112,7 +112,7 @@ setup:
     - source: "$DOTFILES/.xprofile"
       target: "$HOME/.xprofile"
 
-  # Config file symlinks  
+  # Config file symlinks
   config_links:
     - source: "$DOTFILES/.bashrc"
       target: "$HOME/.bashrc"
@@ -122,7 +122,7 @@ setup:
       target: "$HOME/.doom.d"
     - source: "$DOTFILES/.config/tmux/.tmux.conf"
       target: "$HOME/.tmux.conf"
-    - source: "$DOTFILES/.config/vim/.vimrc" 
+    - source: "$DOTFILES/.config/vim/.vimrc"
       target: "$HOME/.vimrc"
     - source: "$DOTFILES/.config/X11/xinitrc"
       target: "$HOME/.xinitrc"
@@ -147,17 +147,30 @@ build:
         - "git clone https://github.com/xmonad/xmonad"
         - "git clone https://github.com/xmonad/xmonad-contrib"
         - "curl -sSL https://get.haskellstack.org/ | sh -s - -f"
+      # Optional compatibility requirements
+      compat:
+        os: linux # Only on Linux
+        pkgmgr: apt # Only if apt is available
 
-# Additional installation scripts 
+# Additional installation scripts
 scripts:
   install:
     - name: doom
       description: "Install Doom Emacs"
       path: "scripts/install/doom"
-      
+      # Optional compatibility requirements
+      compat:
+        os: linux
+
     - name: docker
       description: "Install Docker and Docker Desktop"
       path: "scripts/install/docker"
+      # Optional compatibility requirements
+      compat:
+        shell: bash
+        custom:
+          - name: min-memory
+            value: 4096 # Requires at least 4GB RAM
 
 # Environment variables
 env:
@@ -196,11 +209,13 @@ dotfiles/
 The `setup` command provides core dotfiles operations:
 
 1. `backup`:
+
    - Creates timestamped backup directory
    - Moves existing .config and .local
    - Preserves user's existing configuration
 
 2. `link`:
+
    - Creates core directory symlinks (.config, .local)
    - Creates config file symlinks (.bashrc, .vimrc, etc)
    - Handles both direct and nested config files
@@ -233,6 +248,7 @@ The `install` command:
 The `create` command:
 
 1. `install`:
+
    - Creates new installation scripts in scripts/install/
    - Initializes with a shebang line and makes executable
    - Opens the created script in an editor
@@ -243,6 +259,45 @@ The `create` command:
    - Properly formats the YAML with correct indentation
    - Can specify name, description, and command(s)
    - Simplifies adding new functionality to the build process
+
+### Compatibility System
+
+The compatibility system allows scripts and build steps to define system requirements:
+
+1. Built-in validators:
+
+   - `os`: Operating system (e.g., debian, ubuntu, darwin)
+   - `arch`: CPU architecture (e.g., amd64, arm64)
+   - `shell`: Current shell (e.g., bash, zsh)
+   - `pkgmgr`: Package manager (e.g., apt, yum, pacman)
+   - `kernel`: Kernel version (e.g., 5.10)
+
+2. Custom validators:
+
+   - External packages can register new validators
+   - Custom validators implement the `CustomValidator` interface
+   - Allows extending the system with application-specific checks
+
+3. Usage in configuration:
+
+   ```yaml
+   scripts:
+     install:
+       - name: docker
+         path: scripts/install/docker
+         compat:
+           os: debian
+           shell: bash
+           pkgmgr: apt
+           custom:
+             - name: min-memory
+               value: 4096
+   ```
+
+4. Plugin system:
+   - Allows third-party packages to register validators without modifying core code
+   - Validators are registered during initialization
+   - Makes the system extensible for specific environments
 
 ## Code Style Guidelines
 
@@ -258,11 +313,12 @@ The `create` command:
 2. ✅ Add YAML config parsing
 3. ✅ Create script execution engine
 4. ✅ Add resource creation commands
-5. Add dependency management between install scripts
-6. Enhance error handling and recovery
-7. Add configuration validation
-8. Create comprehensive user documentation
-9. Implement plugin system for custom commands
+5. ✅ Add compatibility hooks system
+6. Add dependency management between install scripts
+7. Enhance error handling and recovery
+8. Add configuration validation
+9. Create comprehensive user documentation
+10. Implement plugin system for custom commands
 
 ## Project Layout
 
@@ -276,35 +332,44 @@ arara/
 ├── internal/
 │   ├── app/            # Application core logic
 │   │   ├── backup/     # Backup functionality
+│   │   ├── build/      # Build operations
+│   │   ├── compat/     # Compatibility system
+│   │   ├── create/     # Resource creation
+│   │   ├── install/    # Tool installation
 │   │   ├── link/       # Symlink management
+│   │   ├── list/       # Script listing
 │   │   └── setup/      # Setup operations
 │   └── pkg/            # Private shared code
 │       ├── config/     # Configuration handling
 │       └── utils/      # Common utilities
 ├── pkg/                # Public libraries
 │   └── dotfiles/       # Core dotfiles operations
-├── build/             
+├── build/
 │   ├── ci/            # CI configuration
 │   └── package/       # Build/package configs
-├── test/              
+├── test/
 │   └── testdata/      # Test fixtures
 ├── docs/              # Documentation
 ├── examples/          # Example configurations
+│   └── plugins/       # Plugin examples
 └── scripts/           # Build and dev scripts
 ```
 
 ### Key Directories
 
 - `/cmd/arara`: Main application entry point
+
   - Minimal main.go that imports and executes core logic
   - Command-line interface implementation using Bonzai
 
 - `/internal`: Private application code
+
   - `app/`: Core application logic
   - `pkg/`: Shared internal utilities
   - Not importable by external projects
 
 - `/pkg`: Public libraries
+
   - Reusable dotfiles management code
   - Can be imported by other projects
   - Stable API with semantic versioning
@@ -317,18 +382,21 @@ arara/
 ### Code Organization
 
 1. Core Logic:
+
    - Keep cmd/arara/main.go minimal
    - Implement core functionality in internal/app
    - Share common code in internal/pkg
    - Make reusable parts public in pkg/
 
 2. Package Structure:
+
    - Use meaningful package names
    - Group related functionality
    - Avoid package name collisions
    - Follow Go naming conventions
 
 3. Dependencies:
+
    - Use Go modules for dependency management
    - Vendor dependencies when needed
    - Keep third-party code separate
@@ -341,18 +409,21 @@ arara/
 ### Best Practices
 
 1. Package Organization:
+
    - Keep packages focused and cohesive
    - Avoid circular dependencies
    - Use internal for private code
    - Make public APIs intentional
 
 2. Code Style:
+
    - Follow Go formatting conventions
    - Use meaningful variable names
    - Document exported items
    - Write clear error messages
 
 3. Project Management:
+
    - Use semantic versioning
    - Maintain changelog
    - Document breaking changes
@@ -364,12 +435,11 @@ arara/
    - Support multiple platforms
    - Include build documentation
 
-
 ## Bonzai latest version examples
 
 Also shows how to use `yaml` config files.
 
-``` go
+```go
 package help
 
 import (
@@ -445,7 +515,7 @@ var Cmd = &bonzai.Cmd{
 
 Extensively use `vars` when needed.
 
-``` go
+```go
 package kimono
 
 import (
@@ -597,7 +667,7 @@ var workInitCmd = &bonzai.Cmd{
 	Alias: `i`,
 	Short: `new go.work in module using dependencies from monorepo`,
 	Long: `
-The "init" subcommand initializes a new Go workspace file (go.work) 
+The "init" subcommand initializes a new Go workspace file (go.work)
 for the current module. It helps automate the creation of a workspace
 file that includes relevant dependencies, streamlining monorepo
 development.
@@ -607,8 +677,8 @@ development.
            dependencies from the monorepo.
   modules: Relative path(s) to modules, same as used with 'go work use'.
 
-Run "work init all" to include all dependencies from the monorepo in a 
-new go.work file. Alternatively, provide specific module paths to 
+Run "work init all" to include all dependencies from the monorepo in a
+new go.work file. Alternatively, provide specific module paths to
 initialize a workspace tailored to those dependencies.
 `,
 	MinArgs:  1,
@@ -653,19 +723,19 @@ var tagListCmd = &bonzai.Cmd{
 	Long: `
 The "list" subcommand displays the list of semantic version (semver)
 tags for the current Go module. This is particularly useful for
-inspecting version history or understanding the current state of version 
+inspecting version history or understanding the current state of version
 tags in your project.
 
 # Behavior
 
-By default, the command lists all tags that are valid semver tags and 
-associated with the current module. The tags can be displayed in their 
+By default, the command lists all tags that are valid semver tags and
+associated with the current module. The tags can be displayed in their
 full form or shortened by setting the KIMONO_TAG_SHORTEN env var.
 
 # Environment Variables
 
 - KIMONO_TAG_SHORTEN: (Defaults to "true")
-  Determines whether to display tags in a shortened format, removing 
+  Determines whether to display tags in a shortened format, removing
   the module prefix. It accepts any truthy value.
 
 # Examples
@@ -700,11 +770,11 @@ var tagDeleteCmd = &bonzai.Cmd{
 	Alias: `d|del|rm`,
 	Short: `delete the given semver tag for the go module`,
 	Long: `
-The "delete" subcommand removes a specified semantic version (semver) 
+The "delete" subcommand removes a specified semantic version (semver)
 tag. This operation is useful for cleaning up incorrect, outdated, or
 unnecessary version tags.
-By default, the "delete" command only removes the tag locally. To 
-delete a tag both locally and remotely, set the TAG_RM_REMOTE 
+By default, the "delete" command only removes the tag locally. To
+delete a tag both locally and remotely, set the TAG_RM_REMOTE
 environment variable or variable to "true". For example:
 
 
@@ -714,7 +784,7 @@ environment variable or variable to "true". For example:
 # Environment Variables
 
 - TAG_RM_REMOTE: (Defaults to "false")
-  Configures whether the semver tag should also be deleted from the 
+  Configures whether the semver tag should also be deleted from the
   remote repository. Set to "true" to enable remote deletion.
 
 # Examples
@@ -745,9 +815,9 @@ var tagBumpCmd = &bonzai.Cmd{
 	Alias: `b|up|i|inc`,
 	Short: `bumps semver tags based on given version part.`,
 	Long: `
-The "bump" subcommand increments the current semantic version (semver) 
-tag of the Go module based on the specified version part. This command 
-is ideal for managing versioning in a structured manner, following 
+The "bump" subcommand increments the current semantic version (semver)
+tag of the Go module based on the specified version part. This command
+is ideal for managing versioning in a structured manner, following
 semver conventions.
 
 # Arguments
@@ -760,12 +830,12 @@ semver conventions.
 # Environment Variables
 
 - TAG_VER_PART: (Defaults to "patch")
-  Specifies the default version part to increment when no argument is 
+  Specifies the default version part to increment when no argument is
   passed.
 
 - TAG_PUSH: (Defaults to "false")
-  Configures whether the bumped tag should be pushed to the remote 
-  repository after being created. Set to "true" to enable automatic 
+  Configures whether the bumped tag should be pushed to the remote
+  repository after being created. Set to "true" to enable automatic
   pushing. It accepts any truthy value.
 
 # Examples
@@ -814,9 +884,9 @@ that dependencies are up-to-date.
 # Arguments:
   module|mod:          Tidy the current module only.
   repo:                Tidy all modules in the repository.
-  deps|dependencies:   Tidy dependencies of the current module in the 
+  deps|dependencies:   Tidy dependencies of the current module in the
                        monorepo.
-  depsonme|dependents: Tidy modules in the monorepo dependent on the 
+  depsonme|dependents: Tidy modules in the monorepo dependent on the
                        current module.
 
 # Environment Variables:
@@ -972,12 +1042,3 @@ func argIsOr(args []string, is string, fallback bool) bool {
 	}
 	return args[0] == is
 }
-
-func getGitRoot() (string, error) {
-	root, err := futil.HereOrAbove(".git")
-	if err != nil {
-		return "", err
-	}
-	return filepath.Dir(root), nil
-}
-```

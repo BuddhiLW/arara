@@ -12,7 +12,7 @@ import (
 var Cmd = &bonzai.Cmd{
 	Name:  "link",
 	Alias: "ln",
-	Short: "Create symlinks for dotfiles",
+	Short: "create symlinks for dotfiles",
 	Cmds:  []*bonzai.Cmd{help.Cmd},
 	Do: func(caller *bonzai.Cmd, args ...string) error {
 		home := os.Getenv("HOME")

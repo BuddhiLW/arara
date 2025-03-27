@@ -13,7 +13,7 @@ import (
 var Cmd = &bonzai.Cmd{
 	Name:  "backup",
 	Alias: "bk",
-	Short: "Backup existing dotfiles",
+	Short: "backup existing dotfiles",
 	Cmds:  []*bonzai.Cmd{help.Cmd},
 	Do: func(caller *bonzai.Cmd, args ...string) error {
 		backupDir := filepath.Join(os.Getenv("HOME"),

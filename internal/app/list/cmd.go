@@ -11,7 +11,7 @@ import (
 var Cmd = &bonzai.Cmd{
 	Name:  "list",
 	Alias: "l",
-	Short: "List available scripts",
+	Short: "list available scripts",
 	Long: `
     List all available installation scripts defined in arara.yaml.
     Shows script name, description, and path.

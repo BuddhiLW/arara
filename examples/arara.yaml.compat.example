@@ -1,0 +1,100 @@
+name: "dotfiles"
+description: "Personal dotfiles with compatibility checks"
+
+# Core setup configuration
+setup:
+  # Directories to backup
+  backup_dirs:
+    - "$HOME/.config"
+    - "$HOME/.local"
+  
+  # Core symlinks
+  core_links:
+    - source: "$DOTFILES/.config"
+      target: "$HOME/.config"
+    - source: "$DOTFILES/.local"
+      target: "$HOME/.local"
+    - source: "$DOTFILES/.xprofile"
+      target: "$HOME/.xprofile"
+
+# Build configuration
+build:
+  # Core system setup steps
+  steps:
+    - name: "backup"
+      description: "Backup existing dotfiles"
+      command: "arara setup backup"
+      compat:
+        # This step works on any OS
+        
+    - name: "link"
+      description: "Create symlinks"
+      command: "arara setup link"
+      # This step works on any OS
+      
+    - name: "xmonad"
+      description: "Setup window manager"
+      commands:
+        - "cd $HOME/.config/xmonad"
+        - "rm -rf xmonad xmonad-contrib"
+        - "git clone https://github.com/xmonad/xmonad"
+        - "git clone https://github.com/xmonad/xmonad-contrib"
+        - "curl -sSL https://get.haskellstack.org/ | sh -s - -f"
+      compat:
+        os: linux       # Only on Linux
+        pkgmgr: apt     # Only if apt is available
+        # Requires 1GB RAM minimum
+        custom:
+          - name: min-memory
+            value: 1024
+
+# Additional installation scripts 
+scripts:
+  install:
+    - name: doom
+      description: "Install Doom Emacs"
+      path: "scripts/install/doom"
+      compat:
+        # This should run only on Linux systems
+        os: linux
+        # Requires at least 2GB of RAM
+        custom:
+          - name: min-memory
+            value: 2048
+      
+    - name: docker
+      description: "Install Docker and Docker Desktop"
+      path: "scripts/install/docker"
+      compat:
+        # This should run on either Linux or macOS
+        os: linux  # The Check function will handle OR conditions in OS validator
+        # Only if the host has 4GB+ RAM and bash shell
+        shell: bash
+        custom:
+          - name: min-memory
+            value: 4096
+    
+    - name: vscode
+      description: "Install Visual Studio Code"
+      path: "scripts/install/vscode"
+      compat:
+        # Works on any OS
+        # Custom validator example: requires GPU acceleration
+        custom:
+          - has-gpu  # This assumes a has-gpu validator is registered
+    
+    - name: android-studio
+      description: "Install Android Studio"
+      path: "scripts/install/android-studio"
+      compat:
+        # Requires 8GB RAM and x86_64 architecture
+        arch: amd64
+        # Note: The validator will convert between amd64 and x86_64 if needed
+        custom:
+          - name: min-memory
+            value: 8192
+
+# Environment variables
+env:
+  DOTFILES: "$HOME/dotfiles"
+  SCRIPTS: "$DOTFILES/scripts"

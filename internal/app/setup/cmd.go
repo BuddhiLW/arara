@@ -11,14 +11,14 @@ import (
 var restoreCmd = &bonzai.Cmd{
 	Name:  "restore",
 	Alias: "r",
-	Short: "Restore from backup",
+	Short: "restore from backup",
 	Cmds:  []*bonzai.Cmd{help.Cmd},
 }
 
 var Cmd = &bonzai.Cmd{
 	Name:  "setup",
 	Alias: "s",
-	Short: "Core dotfiles setup operations",
+	Short: "core dotfiles setup operations",
 	Cmds: []*bonzai.Cmd{
 		backup.Cmd,   // Backup existing dotfiles
 		link.Cmd,     // Create symlinks

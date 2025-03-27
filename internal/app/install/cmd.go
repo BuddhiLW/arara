@@ -11,7 +11,7 @@ import (
 var Cmd = &bonzai.Cmd{
 	Name:  "install",
 	Alias: "i",
-	Short: "Install additional tools",
+	Short: "install additional tools",
 	Long: `
 	Install additional tools and configurations from the scripts directory.
 	Scripts are defined in arara.yaml and executed with proper environment setup.

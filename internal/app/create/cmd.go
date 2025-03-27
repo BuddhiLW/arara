@@ -15,7 +15,7 @@ import (
 var Cmd = &bonzai.Cmd{
 	Name:  "create",
 	Alias: "c",
-	Short: "Create new arara resources",
+	Short: "create new arara resources",
 	Long: `
 The create command helps you add new resources to your dotfiles configuration.
 It streamlines the creation of installation scripts and build steps.
@@ -44,7 +44,7 @@ dotfiles repository and simplifies adding new functionality.
 var installBinCmd = &bonzai.Cmd{
 	Name:  "install",
 	Alias: "i",
-	Short: "Create a new installation script",
+	Short: "create a new installation script",
 	Usage: "arara create install <script_name>",
 	Long: `
 The 'install' subcommand creates a new installation script in your dotfiles
@@ -146,7 +146,7 @@ Examples:
 var buildStepCmd = &bonzai.Cmd{
 	Name:  "build-step",
 	Alias: "b",
-	Short: "Add a new build step to arara.yaml",
+	Short: "add a new build step to arara.yaml",
 	Usage: "arara create build-step <step_name> <description> [command]",
 	Long: `
 The 'build-step' subcommand adds a new step to the build configuration in your

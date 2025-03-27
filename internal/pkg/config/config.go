@@ -7,8 +7,9 @@ import (
 )
 
 type Config struct {
-	Name        string `yaml:"name"`
-	Description string `yaml:"description"`
+	Name        string            `yaml:"name"`
+	Description string            `yaml:"description"`
+	Env         map[string]string `yaml:"env,omitempty"`
 
 	Setup struct {
 		BackupDirs  []string `yaml:"backup_dirs"`
@@ -21,8 +22,8 @@ type Config struct {
 	} `yaml:"build"`
 
 	Scripts struct {
-		Install []Script
-	}
+		Install []Script `yaml:"install,omitempty"`
+	} `yaml:"scripts,omitempty"`
 }
 
 type Link struct {
@@ -31,16 +32,27 @@ type Link struct {
 }
 
 type Step struct {
-	Name        string   `yaml:"name"`
-	Description string   `yaml:"description"`
-	Command     string   `yaml:"command,omitempty"`
-	Commands    []string `yaml:"commands,omitempty"`
+	Name        string        `yaml:"name"`
+	Description string        `yaml:"description"`
+	Command     string        `yaml:"command,omitempty"`
+	Commands    []string      `yaml:"commands,omitempty"`
+	Compat      *CompatConfig `yaml:"compat,omitempty"`
 }
 
 type Script struct {
-	Name        string
-	Description string
-	Path        string
+	Name        string        `yaml:"name"`
+	Description string        `yaml:"description"`
+	Path        string        `yaml:"path"`
+	Compat      *CompatConfig `yaml:"compat,omitempty"`
+}
+
+type CompatConfig struct {
+	OS      string        `yaml:"os,omitempty"`
+	Arch    string        `yaml:"arch,omitempty"`
+	Shell   string        `yaml:"shell,omitempty"`
+	PkgMgr  string        `yaml:"pkgmgr,omitempty"`
+	Kernel  string        `yaml:"kernel,omitempty"`
+	Custom  []interface{} `yaml:"custom,omitempty"`
 }
 
 func LoadConfig(path string) (*Config, error) {
