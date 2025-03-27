@@ -27,7 +27,10 @@ type NSInfo struct {
 // GlobalConfig manages the persistent namespace configuration
 type GlobalConfig struct {
 	persister *inyaml.Persister
-	Config    NamespaceConfig
+	Config    struct {
+		Namespaces []string          `yaml:"namespaces"`
+		Configs    map[string]NSInfo `yaml:"configs"`
+	} `yaml:"config"`
 }
 
 // NewGlobalConfig creates a new global configuration manager
@@ -36,7 +39,10 @@ func NewGlobalConfig() (*GlobalConfig, error) {
 
 	gc := &GlobalConfig{
 		persister: persister,
-		Config: NamespaceConfig{
+		Config: struct {
+			Namespaces []string          `yaml:"namespaces"`
+			Configs    map[string]NSInfo `yaml:"configs"`
+		}{
 			Configs: make(map[string]NSInfo),
 		},
 	}
@@ -63,8 +69,8 @@ func (gc *GlobalConfig) load() error {
 	return nil
 }
 
-// save persists the configuration to disk
-func (gc *GlobalConfig) save() error {
+// Save persists the configuration to disk
+func (gc *GlobalConfig) Save() error {
 	data, err := yaml.Marshal(gc.Config)
 	if err != nil {
 		return fmt.Errorf("failed to marshal config: %w", err)
@@ -103,7 +109,7 @@ func (gc *GlobalConfig) AddNamespace(name, path string, localBin string) error {
 		LocalBin: localBin,
 	}
 
-	return gc.save()
+	return gc.Save()
 }
 
 // UpdateShellRC updates shell initialization files with PATH additions

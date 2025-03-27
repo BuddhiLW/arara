@@ -1042,3 +1042,23 @@ func argIsOr(args []string, is string, fallback bool) bool {
 	}
 	return args[0] == is
 }
+
+## State Management
+
+Arara uses Bonzai's built-in state management system to persist variables between sessions. The state is stored in:
+
+```
+~/.local/state/arara/vars.properties
+```
+
+Key variables include:
+- `active-namespace`: Currently selected dotfiles namespace
+- `dotfiles-path`: Path to active dotfiles repository
+
+You can inspect and modify the state using:
+```bash
+arara var data    # View all variables
+arara var edit    # Edit variables in your default editor
+```
+
+This state management allows Arara to maintain context across commands and sessions, particularly for namespace switching and dotfiles path resolution.

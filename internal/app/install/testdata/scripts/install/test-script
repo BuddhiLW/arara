@@ -1,0 +1,3 @@
+#!/bin/bash
+echo "Test script executed"
+exit 0 

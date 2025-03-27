@@ -95,3 +95,11 @@ func LoadConfig(path string) (*Config, error) {
 
 	return &config, nil
 }
+
+func GetConfigDir() string {
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		return filepath.Join(os.Getenv("HOME"), ".config")
+	}
+	return filepath.Join(configDir, "arara")
+}

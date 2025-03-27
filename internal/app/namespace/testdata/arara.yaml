@@ -1,0 +1,15 @@
+name: test-dotfiles
+description: Test dotfiles configuration
+
+setup:
+  backup_dirs:
+    - "$HOME/.config"
+  core_links:
+    - source: "$DOTFILES/.config"
+      target: "$HOME/.config"
+
+scripts:
+  install:
+    - name: test-script
+      description: "Test installation script"
+      path: "scripts/install/test" 
