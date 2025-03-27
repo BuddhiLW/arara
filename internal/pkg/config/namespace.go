@@ -6,7 +6,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	v "github.com/BuddhiLW/arara/internal/pkg/vars"
 	"github.com/rwxrob/bonzai/persisters/inyaml"
+	"github.com/rwxrob/bonzai/vars"
 	"gopkg.in/yaml.v3"
 )
 
@@ -25,7 +27,7 @@ type NSInfo struct {
 // GlobalConfig manages the persistent namespace configuration
 type GlobalConfig struct {
 	persister *inyaml.Persister
-	config    NamespaceConfig
+	Config    NamespaceConfig
 }
 
 // NewGlobalConfig creates a new global configuration manager
@@ -34,7 +36,7 @@ func NewGlobalConfig() (*GlobalConfig, error) {
 
 	gc := &GlobalConfig{
 		persister: persister,
-		config: NamespaceConfig{
+		Config: NamespaceConfig{
 			Configs: make(map[string]NSInfo),
 		},
 	}
@@ -54,7 +56,7 @@ func (gc *GlobalConfig) load() error {
 		return nil // No existing config
 	}
 
-	if err := yaml.Unmarshal([]byte(data), &gc.config); err != nil {
+	if err := yaml.Unmarshal([]byte(data), &gc.Config); err != nil {
 		return fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
@@ -63,7 +65,7 @@ func (gc *GlobalConfig) load() error {
 
 // save persists the configuration to disk
 func (gc *GlobalConfig) save() error {
-	data, err := yaml.Marshal(gc.config)
+	data, err := yaml.Marshal(gc.Config)
 	if err != nil {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
@@ -85,18 +87,18 @@ func (gc *GlobalConfig) AddNamespace(name, path string, localBin string) error {
 
 	// Add to namespaces list if not present
 	found := false
-	for _, ns := range gc.config.Namespaces {
+	for _, ns := range gc.Config.Namespaces {
 		if ns == name {
 			found = true
 			break
 		}
 	}
 	if !found {
-		gc.config.Namespaces = append(gc.config.Namespaces, name)
+		gc.Config.Namespaces = append(gc.Config.Namespaces, name)
 	}
 
 	// Update namespace config
-	gc.config.Configs[name] = NSInfo{
+	gc.Config.Configs[name] = NSInfo{
 		Path:     path,
 		LocalBin: localBin,
 	}
@@ -114,7 +116,7 @@ func (gc *GlobalConfig) UpdateShellRC() error {
 
 	// Build PATH additions
 	var paths []string
-	for _, info := range gc.config.Configs {
+	for _, info := range gc.Config.Configs {
 		binPath := filepath.Join(info.Path, ".local/bin", info.LocalBin)
 		if _, err := os.Stat(binPath); err == nil {
 			paths = append(paths, binPath)
@@ -175,4 +177,41 @@ func (gc *GlobalConfig) updateRCFile(path string, paths []string) error {
 	// Write updated content
 	newContent := strings.Join(newLines, "\n")
 	return os.WriteFile(path, []byte(newContent), 0644)
+}
+
+// GetDotfilesPath returns the path to the active dotfiles repository
+func GetDotfilesPath() string {
+	// Try environment variable first
+	if path := os.Getenv(v.DotfilesPathEnv); path != "" {
+		return path
+	}
+
+	// Then try persistent variable
+	if path, _ := vars.Data.Get(v.DotfilesPathVar); path != "" {
+		return path
+	}
+
+	// Finally try current directory
+	if pwd, err := os.Getwd(); err == nil {
+		if _, err := os.Stat(filepath.Join(pwd, "arara.yaml")); err == nil {
+			return pwd
+		}
+	}
+
+	return ""
+}
+
+// GetActiveNamespace returns the currently active namespace
+func GetActiveNamespace() string {
+	// Try environment variable first
+	if ns := os.Getenv(v.ActiveNamespaceEnv); ns != "" {
+		return ns
+	}
+
+	// Then try persistent variable
+	if ns, _ := vars.Data.Get(v.ActiveNamespaceVar); ns != "" {
+		return ns
+	}
+
+	return ""
 }

@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"gopkg.in/yaml.v3"
 )
@@ -60,24 +59,15 @@ type CompatConfig struct {
 }
 
 func LoadConfig(path string) (*Config, error) {
-	// First try loading from the specified path
+	// Try loading from the specified path only
 	data, err := os.ReadFile(path)
 	if err != nil {
-		// If file doesn't exist at specified path, try user config directory
-		configDir, err := os.UserConfigDir()
-		if err != nil {
-			return nil, err
-		}
-		path = filepath.Join(configDir, "arara", "config.yaml")
-		data, err = os.ReadFile(path)
-		if err != nil {
-			return nil, err
-		}
+		return nil, fmt.Errorf("failed to read config file %s: %w", path, err)
 	}
 
 	var config Config
 	if err := yaml.Unmarshal(data, &config); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}
 
 	// Load global config to validate namespace
@@ -89,7 +79,7 @@ func LoadConfig(path string) (*Config, error) {
 	// Validate namespace exists
 	if config.Namespace != "" {
 		found := false
-		for _, ns := range gc.config.Namespaces {
+		for _, ns := range gc.Config.Namespaces {
 			if ns == config.Namespace {
 				found = true
 				break

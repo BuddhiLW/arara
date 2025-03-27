@@ -3,17 +3,29 @@ package app
 import (
 	"fmt"
 	"os"
-	
+
 	"github.com/rwxrob/bonzai"
 	"github.com/rwxrob/bonzai/cmds/help"
 	"github.com/rwxrob/bonzai/comp"
+	bonzaiVars "github.com/rwxrob/bonzai/vars"
 	"gopkg.in/yaml.v3"
-	
+
 	"github.com/BuddhiLW/arara/internal/app/build"
 	"github.com/BuddhiLW/arara/internal/app/compat"
 	"github.com/BuddhiLW/arara/internal/app/create"
+	"github.com/BuddhiLW/arara/internal/app/namespace"
 	"github.com/BuddhiLW/arara/internal/app/setup"
 	"github.com/BuddhiLW/arara/internal/pkg/config"
+)
+
+const (
+	// Environment variables
+	ActiveNamespaceEnv = "ARARA_ACTIVE_NAMESPACE"
+	DotfilesPathEnv    = "ARARA_DOTFILES_PATH"
+
+	// Variable names
+	ActiveNamespaceVar = "active-namespace"
+	DotfilesPathVar    = "dotfiles-path"
 )
 
 // Placeholder commands - will be implemented later
@@ -61,7 +73,7 @@ The generated configuration includes:
 This provides a starting point that you can customize for your specific
 dotfiles management needs.
 `,
-	Cmds:  []*bonzai.Cmd{help.Cmd},
+	Cmds: []*bonzai.Cmd{help.Cmd},
 	Do: func(caller *bonzai.Cmd, args ...string) error {
 		// Check if arara.yaml already exists
 		if _, err := os.Stat("arara.yaml"); err == nil {
@@ -81,7 +93,7 @@ dotfiles management needs.
 		// Use YAML encoder for better formatting
 		encoder := yaml.NewEncoder(file)
 		encoder.SetIndent(2)
-		
+
 		if err := encoder.Encode(config); err != nil {
 			return fmt.Errorf("failed to encode config: %w", err)
 		}
@@ -92,27 +104,26 @@ dotfiles management needs.
 	},
 }
 
-
 // createDefaultConfig creates a default configuration structure
 func createDefaultConfig() config.Config {
 	var conf config.Config
-	
+
 	// Basic metadata
 	conf.Name = "dotfiles"
 	conf.Description = "Personal dotfiles configuration"
-	
+
 	// Environment variables
 	conf.Env = map[string]string{
 		"DOTFILES": "$HOME/dotfiles",
 		"SCRIPTS":  "$DOTFILES/scripts",
 	}
-	
+
 	// Setup configuration
 	conf.Setup.BackupDirs = []string{
 		"$HOME/.config",
 		"$HOME/.local",
 	}
-	
+
 	conf.Setup.CoreLinks = []config.Link{
 		{
 			Source: "$DOTFILES/.config",
@@ -123,7 +134,7 @@ func createDefaultConfig() config.Config {
 			Target: "$HOME/.local",
 		},
 	}
-	
+
 	conf.Setup.ConfigLinks = []config.Link{
 		{
 			Source: "$DOTFILES/.bashrc",
@@ -138,7 +149,7 @@ func createDefaultConfig() config.Config {
 			Target: "$HOME/.vimrc",
 		},
 	}
-	
+
 	// Build steps
 	conf.Build.Steps = []config.Step{
 		{
@@ -164,7 +175,7 @@ func createDefaultConfig() config.Config {
 			},
 		},
 	}
-	
+
 	// Installation scripts
 	conf.Scripts.Install = []config.Script{
 		{
@@ -189,7 +200,7 @@ func createDefaultConfig() config.Config {
 			},
 		},
 	}
-	
+
 	return conf
 }
 
@@ -199,7 +210,7 @@ var Cmd = &bonzai.Cmd{
 	Alias: "ar",
 	Vers:  "v0.1.0",
 	Short: "dotfiles management tool",
-	Long: `Arara is a CLI tool for managing dotfiles installation and configuration.
+	Long: `Arara is a CLI tool for managing multiple dotfiles installations and configurations.
 
 # Commands:
 - build:     Execute or list build steps
@@ -209,32 +220,59 @@ var Cmd = &bonzai.Cmd{
 - setup:     Core setup operations (backup, link, restore)
 - list:      List available installation scripts
 - init:      Initialize new arara.yaml configuration
+- namespace: Manage and switch between dotfiles namespaces
 - help:      Show this help message
 
-# Examples:
-  arara setup backup                  # Backup existing dotfiles
-  arara setup link                    # Create symlinks for dotfiles
-  arara build install                 # Execute all build steps
-  arara compat check docker           # Check if docker script is compatible
-  arara compat list                   # List all compatibility validators
-  arara create install docker         # Create a new Docker install script
-  arara create build-step docker "Install Docker" "arara install docker"
-
 Use 'arara help <command> <subcommand>...' for detailed information
-about each command.
-
-Source: github.com/BuddhiLW/arara
-Issues: github.com/BuddhiLW/arara/issues`,
+about each command.`,
 	Cmds: []*bonzai.Cmd{
-		build.Cmd,    // Initial dotfiles setup
-		compat.Cmd,   // Compatibility checking
-		create.Cmd,   // Create resources (install scripts, build steps)
-		installCmd,   // Install additional tools
-		setup.Cmd,    // Core setup operations
-		listCmd,      // List available scripts
-		initCmd,      // Initialize new arara.yaml
-		help.Cmd,     // Show help
+		build.Cmd,     // Initial dotfiles setup
+		compat.Cmd,    // Compatibility checking
+		create.Cmd,    // Create resources
+		installCmd,    // Install additional tools
+		setup.Cmd,     // Core setup operations
+		listCmd,       // List available scripts
+		initCmd,       // Initialize new arara.yaml
+		namespace.Cmd, // Namespace management
+		help.Cmd,      // Show help
+		bonzaiVars.Cmd,
+	},
+	Vars: bonzai.Vars{
+		{
+			K: ActiveNamespaceVar,
+			V: "",
+			E: ActiveNamespaceEnv,
+			S: "Currently active dotfiles namespace",
+		},
+		{
+			K: DotfilesPathVar,
+			V: "",
+			E: DotfilesPathEnv,
+			S: "Path to active dotfiles repository",
+		},
+	},
+	Init: func(x *bonzai.Cmd, args ...string) error {
+		// Load global config
+		gc, err := config.NewGlobalConfig()
+		if err != nil {
+			return fmt.Errorf("failed to load global config: %w", err)
+		}
+
+		// Get active namespace from env/var or use first available
+		ns := bonzaiVars.Fetch(ActiveNamespaceEnv, ActiveNamespaceVar, "")
+		if ns == "" && len(gc.Config.Namespaces) > 0 {
+			ns = gc.Config.Namespaces[0]
+			bonzaiVars.Data.Set(ActiveNamespaceVar, ns)
+		}
+
+		// Set dotfiles path if namespace is active
+		if ns != "" {
+			if info, ok := gc.Config.Configs[ns]; ok {
+				bonzaiVars.Data.Set(DotfilesPathVar, info.Path)
+			}
+		}
+
+		return nil
 	},
 	Comp: comp.Cmds,
-	Def:  help.Cmd,
 }

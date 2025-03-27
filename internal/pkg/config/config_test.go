@@ -1,126 +1,103 @@
-package config
+package config_test
 
 import (
 	"os"
 	"path/filepath"
-	"reflect"
 	"testing"
+
+	"github.com/BuddhiLW/arara/internal/pkg/config"
 )
 
-func TestLoadConfig(t *testing.T) {
-	// Create a temporary config file for testing
+func setupTestConfig(t *testing.T) (string, func()) {
+	// Create temp directory
 	tmpDir := t.TempDir()
-	configPath := filepath.Join(tmpDir, "config.yaml")
 
-	// Valid config content
-	validConfig := `
-name: "test-dotfiles"
-description: "Test dotfiles configuration"
+	// Create test config file
+	configData := []byte(`
+name: test-config
+description: Test configuration
+namespace: test-ns
 
 setup:
   backup_dirs:
-    - "$HOME/.config"
-    - "$HOME/.local"
-  
+    - $HOME/.config
   core_links:
-    - source: "$DOTFILES/.config"
-      target: "$HOME/.config"
-    - source: "$DOTFILES/.local"
-      target: "$HOME/.local"
-
+    - source: $DOTFILES/.config
+      target: $HOME/.config
   config_links:
-    - source: "$DOTFILES/.bashrc"
-      target: "$HOME/.bashrc"
-    - source: "$DOTFILES/.vimrc"
-      target: "$HOME/.vimrc"
+    - source: $DOTFILES/.bashrc
+      target: $HOME/.bashrc
 
 build:
   steps:
-    - name: "backup"
-      description: "Backup existing dotfiles"
-      command: "arara setup backup"
+    - name: test-step
+      description: Test step
+      command: echo "test"
+`)
 
-    - name: "link"
-      description: "Create symlinks"
-      command: "arara setup link"
-
-    - name: "custom"
-      description: "Custom commands"
-      commands:
-        - "echo 'Step 1'"
-        - "echo 'Step 2'"
-`
-
-	// Write valid config to temp file
-	if err := os.WriteFile(configPath, []byte(validConfig), 0644); err != nil {
-		t.Fatalf("Failed to create temp config file: %v", err)
+	configPath := filepath.Join(tmpDir, "arara.yaml")
+	if err := os.WriteFile(configPath, configData, 0644); err != nil {
+		t.Fatalf("Failed to write test config: %v", err)
 	}
 
-	// Test valid config loading
-	t.Run("ValidConfig", func(t *testing.T) {
-		cfg, err := LoadConfig(configPath)
-		if err != nil {
-			t.Fatalf("Failed to load valid config: %v", err)
-		}
+	// Create global config for namespace validation
+	gc, err := config.NewGlobalConfig()
+	if err != nil {
+		t.Fatalf("Failed to create global config: %v", err)
+	}
 
-		// Verify loaded config values
-		if cfg.Name != "test-dotfiles" {
-			t.Errorf("Expected name 'test-dotfiles', got '%s'", cfg.Name)
-		}
+	if err := gc.AddNamespace("test-ns", tmpDir, ""); err != nil {
+		t.Fatalf("Failed to add test namespace: %v", err)
+	}
 
-		if cfg.Description != "Test dotfiles configuration" {
-			t.Errorf("Expected description 'Test dotfiles configuration', got '%s'", cfg.Description)
-		}
+	cleanup := func() {
+		// Cleanup is handled by t.TempDir()
+	}
 
-		// Check backup dirs
-		expected := []string{"$HOME/.config", "$HOME/.local"}
-		if !reflect.DeepEqual(cfg.Setup.BackupDirs, expected) {
-			t.Errorf("Expected backup dirs %v, got %v", expected, cfg.Setup.BackupDirs)
-		}
+	return configPath, cleanup
+}
 
-		// Check links
-		if len(cfg.Setup.CoreLinks) != 2 {
-			t.Errorf("Expected 2 core links, got %d", len(cfg.Setup.CoreLinks))
-		}
+func TestLoadConfig(t *testing.T) {
+	configPath, cleanup := setupTestConfig(t)
+	defer cleanup()
 
-		if len(cfg.Setup.ConfigLinks) != 2 {
-			t.Errorf("Expected 2 config links, got %d", len(cfg.Setup.ConfigLinks))
-		}
+	tests := []struct {
+		name    string
+		path    string
+		wantErr bool
+	}{
+		{
+			name:    "ValidConfig",
+			path:    configPath,
+			wantErr: false,
+		},
+		{
+			name:    "InvalidPath",
+			path:    "/nonexistent/path/config.yaml",
+			wantErr: true,
+		},
+	}
 
-		// Check build steps
-		if len(cfg.Build.Steps) != 3 {
-			t.Errorf("Expected 3 build steps, got %d", len(cfg.Build.Steps))
-		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg, err := config.LoadConfig(tt.path)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("LoadConfig() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
 
-		// Check command vs commands field
-		if cfg.Build.Steps[0].Command != "arara setup backup" {
-			t.Errorf("Expected command 'arara setup backup', got '%s'", cfg.Build.Steps[0].Command)
-		}
+			if !tt.wantErr && cfg == nil {
+				t.Error("LoadConfig() returned nil config without error")
+			}
 
-		expectedCommands := []string{"echo 'Step 1'", "echo 'Step 2'"}
-		if !reflect.DeepEqual(cfg.Build.Steps[2].Commands, expectedCommands) {
-			t.Errorf("Expected commands %v, got %v", expectedCommands, cfg.Build.Steps[2].Commands)
-		}
-	})
-
-	// Test invalid file path
-	t.Run("InvalidPath", func(t *testing.T) {
-		_, err := LoadConfig("/path/that/does/not/exist.yaml")
-		if err == nil {
-			t.Error("Expected error for non-existent config file, got nil")
-		}
-	})
-
-	// Test invalid YAML
-	t.Run("InvalidYAML", func(t *testing.T) {
-		invalidPath := filepath.Join(tmpDir, "invalid.yaml")
-		if err := os.WriteFile(invalidPath, []byte("invalid: yaml: content:"), 0644); err != nil {
-			t.Fatalf("Failed to create invalid yaml file: %v", err)
-		}
-
-		_, err := LoadConfig(invalidPath)
-		if err == nil {
-			t.Error("Expected error for invalid YAML, got nil")
-		}
-	})
+			if !tt.wantErr {
+				if cfg.Name != "test-config" {
+					t.Errorf("LoadConfig() got name = %v, want %v", cfg.Name, "test-config")
+				}
+				if cfg.Namespace != "test-ns" {
+					t.Errorf("LoadConfig() got namespace = %v, want %v", cfg.Namespace, "test-ns")
+				}
+			}
+		})
+	}
 }

@@ -2,7 +2,7 @@ package app
 
 import (
 	"testing"
-	
+
 	"github.com/BuddhiLW/arara/internal/app/build"
 	"github.com/BuddhiLW/arara/internal/app/create"
 	"github.com/BuddhiLW/arara/internal/app/setup"
@@ -13,18 +13,18 @@ func TestRootCmd(t *testing.T) {
 	if Cmd.Name != "arara" {
 		t.Errorf("Expected root command name to be 'arara', got '%s'", Cmd.Name)
 	}
-	
+
 	if Cmd.Alias != "ar" {
 		t.Errorf("Expected root command alias to be 'ar', got '%s'", Cmd.Alias)
 	}
-	
+
 	// Verify the root command has the expected subcommands
 	if len(Cmd.Cmds) < 6 {
 		t.Errorf("Expected at least 6 subcommands in root command, got %d", len(Cmd.Cmds))
 	}
-	
+
 	var hasBuildCmd, hasCreateCmd, hasInstallCmd, hasSetupCmd, hasListCmd, hasInitCmd, hasHelpCmd bool
-	
+
 	for _, cmd := range Cmd.Cmds {
 		switch cmd.Name {
 		case "build":
@@ -52,7 +52,7 @@ func TestRootCmd(t *testing.T) {
 			hasHelpCmd = true
 		}
 	}
-	
+
 	if !hasBuildCmd {
 		t.Errorf("Expected root command to have build subcommand")
 	}

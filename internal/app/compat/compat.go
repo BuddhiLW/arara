@@ -12,12 +12,12 @@ import (
 
 // CompatSpec defines the compatibility requirements for a script
 type CompatSpec struct {
-	OS       string `yaml:"os"`       // Operating system name (e.g., debian, ubuntu, darwin)
-	Arch     string `yaml:"arch"`     // Architecture (e.g., amd64, arm64)
-	Shell    string `yaml:"shell"`    // Shell (e.g., bash, zsh)
-	PkgMgr   string `yaml:"pkgmgr"`   // Package manager (e.g., apt, yum, pacman)
-	Kernel   string `yaml:"kernel"`   // Kernel version requirement
-	Custom   []any  `yaml:"custom"`   // Custom user-defined validation
+	OS     string `yaml:"os"`     // Operating system name (e.g., debian, ubuntu, darwin)
+	Arch   string `yaml:"arch"`   // Architecture (e.g., amd64, arm64)
+	Shell  string `yaml:"shell"`  // Shell (e.g., bash, zsh)
+	PkgMgr string `yaml:"pkgmgr"` // Package manager (e.g., apt, yum, pacman)
+	Kernel string `yaml:"kernel"` // Kernel version requirement
+	Custom []any  `yaml:"custom"` // Custom user-defined validation
 }
 
 // ValidatorFunc is a function that performs a specific compatibility check
@@ -61,8 +61,8 @@ func init() {
 		}
 
 		// Check if the required OS matches
-		return strings.EqualFold(osInfo["ID"], value) || 
-		       strings.Contains(strings.ToLower(osInfo["ID_LIKE"]), strings.ToLower(value))
+		return strings.EqualFold(osInfo["ID"], value) ||
+			strings.Contains(strings.ToLower(osInfo["ID_LIKE"]), strings.ToLower(value))
 	})
 
 	// Architecture validator
@@ -151,9 +151,8 @@ func Check(compat CompatSpec) bool {
 
 	// Check custom validators
 	customReqs := make([]interface{}, 0, len(compat.Custom))
-	for _, c := range compat.Custom {
-		customReqs = append(customReqs, c)
-	}
+	customReqs = append(customReqs, compat.Custom...)
+
 	if !CheckCustom(customReqs) {
 		return false
 	}

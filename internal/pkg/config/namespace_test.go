@@ -22,7 +22,7 @@ func TestNewGlobalConfig(t *testing.T) {
 		t.Fatalf("Failed to create global config: %v", err)
 	}
 
-	if gc.config.Configs == nil {
+	if gc.Config.Configs == nil {
 		t.Error("Expected Configs map to be initialized")
 	}
 
@@ -85,7 +85,7 @@ func TestAddNamespace(t *testing.T) {
 			if !tt.wantErr {
 				// Verify namespace was added
 				found := false
-				for _, ns := range gc.config.Namespaces {
+				for _, ns := range gc.Config.Namespaces {
 					if ns == tt.nsName {
 						found = true
 						break
@@ -96,7 +96,7 @@ func TestAddNamespace(t *testing.T) {
 				}
 
 				// Verify config was added
-				info, exists := gc.config.Configs[tt.nsName]
+				info, exists := gc.Config.Configs[tt.nsName]
 				if !exists {
 					t.Errorf("Config for namespace %s not found", tt.nsName)
 					return
