@@ -310,10 +310,10 @@ This ensures executables created with 'arara create bin' are available in your s
 		}
 
 		// Check if paths are already in .bashrc
-		if strings.Contains(string(content), "<<<< arara local-bin setup") {
+		if strings.Contains(string(content), "# <<<< arara local-bin setup") {
 			// Extract existing paths between markers
-			start := strings.Index(string(content), "<<<< arara local-bin setup")
-			end := strings.Index(string(content), ">>>>")
+			start := strings.Index(string(content), "# <<<< arara local-bin setup")
+			end := strings.Index(string(content), "# >>>>")
 			if start == -1 || end == -1 {
 				return fmt.Errorf("malformed arara path setup in .bashrc")
 			}
@@ -335,9 +335,9 @@ This ensures executables created with 'arara create bin' are available in your s
 
 			// Create updated content
 			beforeBlock := string(content[:start])
-			afterBlock := string(content[end+4:]) // +4 to skip ">>>>
+			afterBlock := string(content[end+6:]) // +4 to skip "# >>>>
 
-			newContent := "<<<< arara local-bin setup\n"
+			newContent := "# <<<< arara local-bin setup\n"
 			// Keep existing paths
 			for _, line := range strings.Split(existingBlock, "\n") {
 				if strings.Contains(line, "export PATH") {
@@ -348,7 +348,7 @@ This ensures executables created with 'arara create bin' are available in your s
 			for _, path := range newPaths {
 				newContent += fmt.Sprintf(`export PATH="$PATH:%s"`+"\n", path)
 			}
-			newContent += ">>>>\n"
+			newContent += "# >>>>\n"
 
 			// Write updated content
 			finalContent := beforeBlock + newContent + afterBlock
@@ -360,11 +360,11 @@ This ensures executables created with 'arara create bin' are available in your s
 			fmt.Println("Please run 'source ~/.bashrc' or start a new shell for changes to take effect")
 		} else {
 			// No existing block, create new one
-			newContent := "\n<<<< arara local-bin setup\n"
+			newContent := "\n# <<<< arara local-bin setup\n"
 			for _, path := range localBinPaths {
 				newContent += fmt.Sprintf(`export PATH="$PATH:%s"`+"\n", path)
 			}
-			newContent += ">>>>\n"
+			newContent += "# >>>>\n"
 
 			// Append to .bashrc
 			if err := os.WriteFile(bashrcPath, append(content, []byte(newContent)...), 0644); err != nil {
