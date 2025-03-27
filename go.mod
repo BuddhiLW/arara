@@ -6,6 +6,7 @@ require (
 	github.com/rwxrob/bonzai v0.56.6
 	github.com/rwxrob/bonzai/cmds/help v0.8.2
 	github.com/rwxrob/bonzai/comp v0.10.0
+	github.com/rwxrob/bonzai/persisters/inyaml v0.3.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
