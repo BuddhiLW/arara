@@ -10,13 +10,16 @@ import (
 	bonzaiVars "github.com/rwxrob/bonzai/vars"
 	"gopkg.in/yaml.v3"
 
+	"github.com/BuddhiLW/arara/internal/app/backup"
 	"github.com/BuddhiLW/arara/internal/app/build"
 	"github.com/BuddhiLW/arara/internal/app/compat"
 	"github.com/BuddhiLW/arara/internal/app/create"
 	"github.com/BuddhiLW/arara/internal/app/install"
+	"github.com/BuddhiLW/arara/internal/app/link"
 	"github.com/BuddhiLW/arara/internal/app/list"
 	"github.com/BuddhiLW/arara/internal/app/namespace"
 	"github.com/BuddhiLW/arara/internal/app/setup"
+	"github.com/BuddhiLW/arara/internal/app/sync"
 	"github.com/BuddhiLW/arara/internal/pkg/config"
 )
 
@@ -197,7 +200,20 @@ func createDefaultConfig() config.Config {
 
 // Cmd defines the root command for arara CLI
 var Cmd = &bonzai.Cmd{
-	Name:  "arara",
+	Name: "arara",
+	Cmds: []*bonzai.Cmd{
+		backup.Cmd,    // Backup dotfiles
+		build.Cmd,     // Execute build steps
+		compat.Cmd,    // Check system compatibility
+		create.Cmd,    // Create new resources
+		help.Cmd,      // Show help information
+		install.Cmd,   // Install additional tools
+		link.Cmd,      // Create symlinks
+		list.Cmd,      // List available scripts
+		namespace.Cmd, // Manage namespaces
+		setup.Cmd,     // Core setup operations
+		sync.Cmd,      // Sync install scripts
+	},
 	Alias: "ar",
 	Vers:  "v0.1.0",
 	Short: "dotfiles management tool",
@@ -216,18 +232,6 @@ var Cmd = &bonzai.Cmd{
 
 Use 'arara help <command> <subcommand>...' for detailed information
 about each command.`,
-	Cmds: []*bonzai.Cmd{
-		build.Cmd,     // Initial dotfiles setup
-		compat.Cmd,    // Compatibility checking
-		create.Cmd,    // Create resources
-		install.Cmd,   // Install additional tools
-		setup.Cmd,     // Core setup operations
-		list.Cmd,      // List available scripts
-		initCmd,       // Initialize new arara.yaml
-		namespace.Cmd, // Namespace management
-		help.Cmd,      // Show help
-		bonzaiVars.Cmd,
-	},
 	Vars: bonzai.Vars{
 		{
 			K: ActiveNamespaceVar,

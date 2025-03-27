@@ -50,6 +50,11 @@ type Script struct {
 	Compat      *CompatConfig `yaml:"compat,omitempty"`
 }
 
+// String implements fmt.Stringer for interactive selection
+func (s Script) String() string {
+	return fmt.Sprintf("%s: %s", s.Name, s.Description)
+}
+
 type CompatConfig struct {
 	OS     string        `yaml:"os,omitempty"`
 	Arch   string        `yaml:"arch,omitempty"`
@@ -102,4 +107,9 @@ func GetConfigDir() string {
 		return filepath.Join(os.Getenv("HOME"), ".config")
 	}
 	return filepath.Join(configDir, "arara")
+}
+
+// Marshal returns the YAML representation of the config
+func (c *Config) Marshal() ([]byte, error) {
+	return yaml.Marshal(c)
 }

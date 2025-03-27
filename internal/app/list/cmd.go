@@ -90,7 +90,17 @@ Commands:
 				if err := autoAddNamespace(pwd); err != nil {
 					return err
 				}
-				return localCmd.Do(caller, args...)
+				// List scripts from local config
+				cfg, err := config.LoadConfig("arara.yaml")
+				if err != nil {
+					return fmt.Errorf("failed to load local config: %w", err)
+				}
+
+				fmt.Println("Available installation scripts (local):")
+				for _, script := range cfg.Scripts.Install {
+					fmt.Printf("  %s - %s\n", script.Name, script.Description)
+				}
+				return nil
 			}
 		}
 		// Fallback to global

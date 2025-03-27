@@ -4,6 +4,7 @@ go 1.24
 
 require (
 	github.com/rwxrob/bonzai v0.56.6
+	github.com/rwxrob/bonzai/choose v0.1.0
 	github.com/rwxrob/bonzai/cmds/help v0.8.2
 	github.com/rwxrob/bonzai/comp v0.10.0
 	github.com/rwxrob/bonzai/edit v0.1.1
