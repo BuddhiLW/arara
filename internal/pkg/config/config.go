@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"gopkg.in/yaml.v3"
 )
@@ -59,7 +60,6 @@ type CompatConfig struct {
 }
 
 func LoadConfig(path string) (*Config, error) {
-	// Try loading from the specified path only
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file %s: %w", path, err)
@@ -70,23 +70,26 @@ func LoadConfig(path string) (*Config, error) {
 		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}
 
-	// Load global config to validate namespace
-	gc, err := NewGlobalConfig()
-	if err != nil {
-		return nil, fmt.Errorf("failed to load global config: %w", err)
-	}
-
-	// Validate namespace exists
-	if config.Namespace != "" {
-		found := false
-		for _, ns := range gc.Config.Namespaces {
-			if ns == config.Namespace {
-				found = true
-				break
-			}
+	// Only validate namespace if it's a global config
+	if filepath.Base(path) == "config.yaml" {
+		// Load global config to validate namespace
+		gc, err := NewGlobalConfig()
+		if err != nil {
+			return nil, fmt.Errorf("failed to load global config: %w", err)
 		}
-		if !found {
-			return nil, fmt.Errorf("undefined namespace: %s", config.Namespace)
+
+		// Validate namespace exists
+		if config.Namespace != "" {
+			found := false
+			for _, ns := range gc.Config.Namespaces {
+				if ns == config.Namespace {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return nil, fmt.Errorf("undefined namespace: %s", config.Namespace)
+			}
 		}
 	}
 

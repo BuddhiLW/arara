@@ -13,6 +13,8 @@ import (
 	"github.com/BuddhiLW/arara/internal/app/build"
 	"github.com/BuddhiLW/arara/internal/app/compat"
 	"github.com/BuddhiLW/arara/internal/app/create"
+	"github.com/BuddhiLW/arara/internal/app/install"
+	"github.com/BuddhiLW/arara/internal/app/list"
 	"github.com/BuddhiLW/arara/internal/app/namespace"
 	"github.com/BuddhiLW/arara/internal/app/setup"
 	"github.com/BuddhiLW/arara/internal/pkg/config"
@@ -36,17 +38,6 @@ var installCmd = &bonzai.Cmd{
 	Cmds:  []*bonzai.Cmd{help.Cmd},
 	Do: func(caller *bonzai.Cmd, args ...string) error {
 		fmt.Println("Install command - to be implemented")
-		return nil
-	},
-}
-
-var listCmd = &bonzai.Cmd{
-	Name:  "list",
-	Alias: "l",
-	Short: "list available scripts",
-	Cmds:  []*bonzai.Cmd{help.Cmd},
-	Do: func(caller *bonzai.Cmd, args ...string) error {
-		fmt.Println("List command - to be implemented")
 		return nil
 	},
 }
@@ -229,9 +220,9 @@ about each command.`,
 		build.Cmd,     // Initial dotfiles setup
 		compat.Cmd,    // Compatibility checking
 		create.Cmd,    // Create resources
-		installCmd,    // Install additional tools
+		install.Cmd,   // Install additional tools
 		setup.Cmd,     // Core setup operations
-		listCmd,       // List available scripts
+		list.Cmd,      // List available scripts
 		initCmd,       // Initialize new arara.yaml
 		namespace.Cmd, // Namespace management
 		help.Cmd,      // Show help
