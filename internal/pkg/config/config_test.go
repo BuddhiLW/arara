@@ -101,3 +101,13 @@ func TestLoadConfig(t *testing.T) {
 		})
 	}
 }
+
+func TestNewGlobalConfig(t *testing.T) {
+	gc, err := config.NewGlobalConfig()
+	if err != nil {
+		t.Fatalf("NewGlobalConfig() error = %v", err)
+	}
+	if gc == nil {
+		t.Error("NewGlobalConfig() returned nil")
+	}
+}

@@ -17,10 +17,13 @@ func setupTestEnv(t *testing.T) (string, func()) {
 
 	// Save original config dir and create test config dir
 	origConfigDir := os.Getenv("XDG_CONFIG_HOME")
+	origTestMode := os.Getenv("TEST_MODE")
 	os.Setenv("XDG_CONFIG_HOME", tmpDir)
+	os.Setenv("TEST_MODE", "1")
 
 	cleanup := func() {
 		os.Setenv("XDG_CONFIG_HOME", origConfigDir)
+		os.Setenv("TEST_MODE", origTestMode)
 		bonzaiVars.Data.Clear()
 	}
 
@@ -45,8 +48,8 @@ func TestListCmd_ContextAware(t *testing.T) {
 				if err := os.MkdirAll(dotfilesDir, 0755); err != nil {
 					return err
 				}
-				// Create arara.yaml with name
 				config := []byte(`
+namespace: test-dotfiles  # Add namespace field
 name: test-dotfiles
 scripts:
   install:
@@ -66,7 +69,8 @@ scripts:
 				if err := os.MkdirAll(dotfilesDir, 0755); err != nil {
 					return err
 				}
-				yamlConfig := []byte(`name: existing-dots`)
+				yamlConfig := []byte(`namespace: existing
+name: existing-dots`)
 				if err := os.WriteFile(filepath.Join(dotfilesDir, "arara.yaml"), yamlConfig, 0644); err != nil {
 					return err
 				}
@@ -76,11 +80,11 @@ scripts:
 				if err != nil {
 					return err
 				}
-				gc.Config.Namespaces = append(gc.Config.Namespaces, "existing-dots")
-				gc.Config.Configs["existing-dots"] = config.NSInfo{Path: dotfilesDir}
+				gc.Config.Namespaces = append(gc.Config.Namespaces, "existing")
+				gc.Config.Configs["existing"] = config.NSInfo{Path: dotfilesDir}
 				return gc.Save()
 			},
-			wantNamespace: "existing-dots",
+			wantNamespace: "existing",
 			wantAutoAdd:   false,
 		},
 		{

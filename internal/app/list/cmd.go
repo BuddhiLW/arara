@@ -26,8 +26,8 @@ func autoAddNamespace(path string) error {
 		return err
 	}
 
-	// Use directory name as namespace if not specified
-	nsName := cfg.Name
+	// Use namespace from config, or directory name as fallback
+	nsName := cfg.Namespace
 	if nsName == "" {
 		nsName = filepath.Base(path)
 	}
@@ -50,7 +50,8 @@ func autoAddNamespace(path string) error {
 	// Add new namespace
 	gc.Config.Namespaces = append(gc.Config.Namespaces, nsName)
 	gc.Config.Configs[nsName] = config.NSInfo{
-		Path: path,
+		Path:     path,
+		LocalBin: nsName, // Use namespace name as default local-bin
 	}
 
 	if err := gc.Save(); err != nil {
@@ -136,7 +137,10 @@ var globalCmd = &bonzai.Cmd{
 		}
 
 		// Get dotfiles path from active namespace
-		dotfilesPath := config.GetDotfilesPath()
+		dotfilesPath, err := config.GetDotfilesPath()
+		if err != nil {
+			return fmt.Errorf("failed to get dotfiles path: %w", err)
+		}
 		if dotfilesPath == "" {
 			return fmt.Errorf("no dotfiles path found for namespace: %s", activeNS)
 		}

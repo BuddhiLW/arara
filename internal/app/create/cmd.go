@@ -7,37 +7,26 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/BuddhiLW/arara/internal/pkg/config"
 	"github.com/rwxrob/bonzai"
 	"github.com/rwxrob/bonzai/cmds/help"
+	"github.com/rwxrob/bonzai/edit"
 )
 
 // Cmd represents the create command
 var Cmd = &bonzai.Cmd{
 	Name:  "create",
 	Alias: "c",
-	Short: "create new arara resources",
+	Short: "create new resources",
 	Long: `
-The create command helps you add new resources to your dotfiles configuration.
-It streamlines the creation of installation scripts and build steps.
+Create new resources in the active namespace.
 
-Subcommands:
-  install    - Create a new installation script in scripts/install/
-              These scripts can be executed via 'arara install <name>'
-  
-  build-step - Add a new build step to your arara.yaml configuration
-              Build steps are executed during 'arara build install'
-
-Examples:
-  arara create install docker
-      Creates a new installation script for Docker and opens it in your editor
-  
-  arara create build-step docker "Install Docker" "arara install docker"
-      Adds a new build step to arara.yaml to install Docker during builds
-
-The create command helps maintain a consistent structure for your
-dotfiles repository and simplifies adding new functionality.
+Currently supports:
+* install - Create a new install script
+* bin - Create a new executable in local-bin
+* setup-path - Add local-bin to PATH
 `,
-	Cmds:  []*bonzai.Cmd{help.Cmd, installBinCmd, buildStepCmd},
+	Cmds: []*bonzai.Cmd{help.Cmd, installBinCmd, buildStepCmd, binCmd, setupPathCmd},
 }
 
 // installBinCmd creates a new install script
@@ -76,7 +65,7 @@ Examples:
 	MinArgs: 1,
 	Do: func(caller *bonzai.Cmd, args ...string) error {
 		scriptName := args[0]
-		
+
 		// Get the DOTFILES environment variable
 		dotfilesDir := os.Getenv("DOTFILES")
 		if dotfilesDir == "" {
@@ -87,16 +76,16 @@ Examples:
 			}
 			dotfilesDir = filepath.Join(homeDir, "dotfiles")
 		}
-		
+
 		// Create the scripts/install directory if it doesn't exist
 		installDir := filepath.Join(dotfilesDir, "scripts", "install")
 		if err := os.MkdirAll(installDir, 0755); err != nil {
 			return fmt.Errorf("failed to create install scripts directory: %w", err)
 		}
-		
+
 		// Full path to the script
 		scriptPath := filepath.Join(installDir, scriptName)
-		
+
 		// Check if script already exists
 		_, err := os.Stat(scriptPath)
 		if os.IsNotExist(err) {
@@ -105,39 +94,39 @@ Examples:
 			if err != nil {
 				return fmt.Errorf("failed to create script file: %w", err)
 			}
-			
+
 			// Write shebang
 			_, err = f.WriteString("#!/usr/bin/bash\n\n# Installation script for " + scriptName + "\n\n")
 			if err != nil {
 				f.Close()
 				return fmt.Errorf("failed to write to script file: %w", err)
 			}
-			
+
 			f.Close()
-			
+
 			// Make script executable
 			if err := os.Chmod(scriptPath, 0755); err != nil {
 				return fmt.Errorf("failed to make script executable: %w", err)
 			}
-			
+
 			fmt.Printf("Created new installation script: %s\n", scriptPath)
 		} else if err != nil {
 			return fmt.Errorf("failed to check if script exists: %w", err)
 		} else {
 			fmt.Printf("Opening existing script: %s\n", scriptPath)
 		}
-		
+
 		// Open the script in editor
 		editor := os.Getenv("EDITOR")
 		if editor == "" {
 			editor = "vim" // Default to vim if EDITOR is not set
 		}
-		
+
 		cmd := exec.Command(editor, scriptPath)
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
-		
+
 		return cmd.Run()
 	},
 }
@@ -188,51 +177,51 @@ and use the 'commands' field instead of 'command'.
 	Do: func(caller *bonzai.Cmd, args ...string) error {
 		stepName := args[0]
 		description := args[1]
-		
+
 		// Get optional command if provided
 		var command string
 		if len(args) > 2 {
 			command = args[2]
 		}
-		
+
 		// Look for arara.yaml in current directory or parent directories
 		configPath, err := findConfigFile()
 		if err != nil {
 			return err
 		}
-		
+
 		// Read the existing config file
 		content, err := os.ReadFile(configPath)
 		if err != nil {
 			return fmt.Errorf("failed to read config file: %w", err)
 		}
-		
+
 		// Parse the file to find where to insert the new step
 		lines := strings.Split(string(content), "\n")
 		buildStepsIndex := -1
-		
+
 		for i, line := range lines {
 			if strings.TrimSpace(line) == "steps:" {
 				buildStepsIndex = i
 				break
 			}
 		}
-		
+
 		if buildStepsIndex == -1 {
 			return fmt.Errorf("couldn't find 'steps:' section in the config file")
 		}
-		
+
 		// Format the new build step
 		var newStep []string
 		indent := getIndentation(lines, buildStepsIndex)
-		
+
 		newStep = append(newStep, indent+"- name: \""+stepName+"\"")
 		newStep = append(newStep, indent+"  description: \""+description+"\"")
-		
+
 		if command != "" {
 			newStep = append(newStep, indent+"  command: \""+command+"\"")
 		}
-		
+
 		// Insert the new step after the last existing step
 		lastStepIndex := buildStepsIndex
 		for i := buildStepsIndex + 1; i < len(lines); i++ {
@@ -251,7 +240,7 @@ and use the 'commands' field instead of 'command'.
 				}
 			}
 		}
-		
+
 		// Insert the new step into the lines slice
 		updatedLines := make([]string, 0)
 		updatedLines = append(updatedLines, lines[:lastStepIndex+1]...)
@@ -260,13 +249,132 @@ and use the 'commands' field instead of 'command'.
 		if lastStepIndex+1 < len(lines) {
 			updatedLines = append(updatedLines, lines[lastStepIndex+1:]...)
 		}
-		
+
 		// Write the updated content back to the file
 		if err := os.WriteFile(configPath, []byte(strings.Join(updatedLines, "\n")), 0644); err != nil {
 			return fmt.Errorf("failed to write updated config file: %w", err)
 		}
-		
+
 		fmt.Printf("Added new build step '%s' to %s\n", stepName, configPath)
+		return nil
+	},
+}
+
+// binCmd creates a new executable in local-bin
+var binCmd = &bonzai.Cmd{
+	Name:  "bin",
+	Usage: "<name>",
+	Short: "create a new executable in local-bin",
+	Long: `
+Create a new executable script in the namespace's local-bin directory.
+The script will be created in <local-bin>/<name> and made executable.
+`,
+	Do: createBinScript,
+}
+
+// setupPathCmd adds local-bin to PATH in .bashrc
+var setupPathCmd = &bonzai.Cmd{
+	Name:  "setup-path",
+	Short: "add local-bin to PATH",
+	Long: `
+Add the local-bin directory to PATH in your .bashrc file.
+This ensures executables created with 'arara create bin' are available in your shell.
+`,
+	Do: func(cmd *bonzai.Cmd, args ...string) error {
+		// Get home directory
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("failed to get home directory: %w", err)
+		}
+
+		// Get all namespace local-bin paths
+		gc, err := config.NewGlobalConfig()
+		if err != nil {
+			return fmt.Errorf("failed to load global config: %w", err)
+		}
+
+		// Collect all local-bin paths
+		localBinPaths := make([]string, 0)
+		basePath := filepath.Join(home, ".local", "bin")
+		for _, ns := range gc.Namespaces {
+			if info, ok := gc.Configs[ns]; ok && info.LocalBin != "" {
+				localBinPaths = append(localBinPaths, filepath.Join(basePath, info.LocalBin))
+			}
+		}
+
+		// Read .bashrc
+		bashrcPath := filepath.Join(home, ".bashrc")
+		content, err := os.ReadFile(bashrcPath)
+		if err != nil {
+			return fmt.Errorf("failed to read .bashrc: %w", err)
+		}
+
+		// Check if paths are already in .bashrc
+		if strings.Contains(string(content), "<<<< arara local-bin setup") {
+			// Extract existing paths between markers
+			start := strings.Index(string(content), "<<<< arara local-bin setup")
+			end := strings.Index(string(content), ">>>>")
+			if start == -1 || end == -1 {
+				return fmt.Errorf("malformed arara path setup in .bashrc")
+			}
+
+			existingBlock := string(content[start:end])
+
+			// Check which paths need to be added
+			newPaths := make([]string, 0)
+			for _, path := range localBinPaths {
+				if !strings.Contains(existingBlock, path) {
+					newPaths = append(newPaths, path)
+				}
+			}
+
+			if len(newPaths) == 0 {
+				fmt.Println("All paths already configured in .bashrc")
+				return nil
+			}
+
+			// Create updated content
+			beforeBlock := string(content[:start])
+			afterBlock := string(content[end+4:]) // +4 to skip ">>>>
+
+			newContent := "<<<< arara local-bin setup\n"
+			// Keep existing paths
+			for _, line := range strings.Split(existingBlock, "\n") {
+				if strings.Contains(line, "export PATH") {
+					newContent += line + "\n"
+				}
+			}
+			// Add new paths
+			for _, path := range newPaths {
+				newContent += fmt.Sprintf(`export PATH="$PATH:%s"`+"\n", path)
+			}
+			newContent += ">>>>\n"
+
+			// Write updated content
+			finalContent := beforeBlock + newContent + afterBlock
+			if err := os.WriteFile(bashrcPath, []byte(finalContent), 0644); err != nil {
+				return fmt.Errorf("failed to update .bashrc: %w", err)
+			}
+
+			fmt.Printf("Added new paths to PATH in .bashrc\n")
+			fmt.Println("Please run 'source ~/.bashrc' or start a new shell for changes to take effect")
+		} else {
+			// No existing block, create new one
+			newContent := "\n<<<< arara local-bin setup\n"
+			for _, path := range localBinPaths {
+				newContent += fmt.Sprintf(`export PATH="$PATH:%s"`+"\n", path)
+			}
+			newContent += ">>>>\n"
+
+			// Append to .bashrc
+			if err := os.WriteFile(bashrcPath, append(content, []byte(newContent)...), 0644); err != nil {
+				return fmt.Errorf("failed to update .bashrc: %w", err)
+			}
+
+			fmt.Printf("Added paths to PATH in .bashrc\n")
+			fmt.Println("Please run 'source ~/.bashrc' or start a new shell for changes to take effect")
+		}
+
 		return nil
 	},
 }
@@ -278,10 +386,10 @@ func findConfigFile() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to get current directory: %w", err)
 	}
-	
+
 	// Look for arara.yaml or .arara.yaml
 	possibleNames := []string{"arara.yaml", ".arara.yaml"}
-	
+
 	// Look in current directory
 	for _, name := range possibleNames {
 		path := filepath.Join(pwd, name)
@@ -289,20 +397,20 @@ func findConfigFile() (string, error) {
 			return path, nil
 		}
 	}
-	
+
 	// Try home directory
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("failed to get home directory: %w", err)
 	}
-	
+
 	for _, name := range possibleNames {
 		path := filepath.Join(homeDir, name)
 		if _, err := os.Stat(path); err == nil {
 			return path, nil
 		}
 	}
-	
+
 	// Try dotfiles directory if it exists
 	dotfilesDir := os.Getenv("DOTFILES")
 	if dotfilesDir != "" {
@@ -313,7 +421,7 @@ func findConfigFile() (string, error) {
 			}
 		}
 	}
-	
+
 	return "", fmt.Errorf("couldn't find arara.yaml configuration file")
 }
 
@@ -340,4 +448,66 @@ func getIndentation(lines []string, lineIndex int) string {
 	}
 	// Default indent if we can't determine it
 	return "  "
+}
+
+func createBinScript(cmd *bonzai.Cmd, args ...string) error {
+	if len(args) != 1 {
+		return fmt.Errorf("expected script name argument")
+	}
+	name := args[0]
+
+	// Get active namespace config
+	gc, err := config.NewGlobalConfig()
+	if err != nil {
+		return fmt.Errorf("failed to load global config: %w", err)
+	}
+
+	ns := gc.GetActiveNamespace()
+	if ns == nil {
+		return fmt.Errorf("no active namespace")
+	}
+
+	if ns.LocalBin == "" {
+		return fmt.Errorf("local-bin not configured for namespace %s", ns.Name)
+	}
+
+	// Create bin directory if it doesn't exist
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		configDir = filepath.Join(os.Getenv("HOME"), ".config")
+	}
+	localBinDir := filepath.Join(configDir, "..", ".local", "bin")
+	binDir := filepath.Join(localBinDir, ns.LocalBin)
+
+	if err := os.MkdirAll(binDir, 0755); err != nil {
+		return fmt.Errorf("failed to create bin directory: %w", err)
+	}
+
+	// Create script file
+	scriptPath := filepath.Join(binDir, name)
+	if _, err := os.Stat(scriptPath); err == nil {
+		return fmt.Errorf("script %s already exists", name)
+	}
+
+	content := []byte(`#!/bin/bash
+
+# Description: <add description>
+
+set -euo pipefail
+
+# Your code here
+`)
+
+	if err := os.WriteFile(scriptPath, content, 0755); err != nil {
+		return fmt.Errorf("failed to create script: %w", err)
+	}
+
+	fmt.Printf("Created executable %s\n", scriptPath)
+
+	// Open the script in editor
+	if err := edit.Files(scriptPath); err != nil {
+		return fmt.Errorf("failed to open script in editor: %w", err)
+	}
+
+	return nil
 }

@@ -32,6 +32,8 @@ func setupTestEnv(t *testing.T) (string, func()) {
 
 	// Create test arara.yaml
 	if err := os.WriteFile(filepath.Join(tmpDir, "arara.yaml"), []byte(`
+namespace: test
+name: test-dotfiles
 scripts:
   install:
     - name: test
@@ -41,8 +43,27 @@ scripts:
 		t.Fatal(err)
 	}
 
+	// Set up test namespace in global config
+	configDir := filepath.Join(tmpDir, "config")
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	
+	// Set XDG_CONFIG_HOME to our test config directory
+	origConfigHome := os.Getenv("XDG_CONFIG_HOME")
+	os.Setenv("XDG_CONFIG_HOME", configDir)
+	
+	// Set up active namespace and test mode
+	os.Setenv("ARARA_ACTIVE_NAMESPACE", "test")
+	os.Setenv("ARARA_DOTFILES_PATH", tmpDir)
+	os.Setenv("TEST_MODE", "1")
+
 	cleanup := func() {
 		os.RemoveAll(tmpDir)
+		os.Setenv("XDG_CONFIG_HOME", origConfigHome)
+		os.Unsetenv("ARARA_ACTIVE_NAMESPACE")
+		os.Unsetenv("ARARA_DOTFILES_PATH")
+		os.Unsetenv("TEST_MODE")
 	}
 
 	return tmpDir, cleanup

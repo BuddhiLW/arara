@@ -99,7 +99,7 @@ func (s scriptConflict) String() string {
 }
 
 // Non-interactive function for testing
-func syncScripts(cfg *config.Config, scriptsDir string) ([]config.Script, []scriptConflict, error) {
+func syncScripts(cfg *config.DotfilesConfig, scriptsDir string) ([]config.Script, []scriptConflict, error) {
 	// Initialize scripts map to preserve existing configurations
 	existingScripts := make(map[string]config.Script)
 	for _, script := range cfg.Scripts.Install {
@@ -242,7 +242,8 @@ Changes are applied atomically with automatic rollback on failure.
 			}
 		}()
 
-		// Load current config
+		// In tests, we might be in a directory with arara.yaml and no active namespace
+		// Try to load config without namespace validation first
 		cfg, err := config.LoadConfig(configPath)
 		if err != nil {
 			return fmt.Errorf("failed to load config: %w", err)

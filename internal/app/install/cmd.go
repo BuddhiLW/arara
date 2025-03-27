@@ -27,7 +27,10 @@ var Cmd = &bonzai.Cmd{
 	},
 	Do: func(caller *bonzai.Cmd, args ...string) error {
 		// Get dotfiles path from vars
-		dotfilesPath := config.GetDotfilesPath()
+		dotfilesPath, err := config.GetDotfilesPath()
+		if err != nil {
+			return fmt.Errorf("failed to get dotfiles path: %w", err)
+		}
 		if dotfilesPath == "" {
 			return fmt.Errorf("no active dotfiles repository found")
 		}

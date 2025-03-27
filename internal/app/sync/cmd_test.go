@@ -16,9 +16,14 @@ import (
 func setupTestEnv(t *testing.T) (string, func()) {
 	tmpDir := t.TempDir()
 	origDir, _ := os.Getwd()
+	origTestMode := os.Getenv("TEST_MODE")
+	
+	// Set test mode to bypass namespace validation
+	os.Setenv("TEST_MODE", "1")
 
 	cleanup := func() {
 		os.Chdir(origDir)
+		os.Setenv("TEST_MODE", origTestMode)
 	}
 
 	return tmpDir, cleanup
@@ -234,31 +239,43 @@ func TestSyncCmd_Transactions(t *testing.T) {
 
 // Helper functions
 func setupBasicConfig(dir string) error {
-	// Create scripts directory
-	if err := os.MkdirAll(filepath.Join(dir, "scripts/install"), 0755); err != nil {
+	// Create scripts directory structure and test scripts
+	scriptsDir := filepath.Join(dir, "scripts", "install")
+	if err := os.MkdirAll(scriptsDir, 0755); err != nil {
 		return err
 	}
 
-	// Create test scripts
-	scripts := map[string]string{
-		"script1": "#!/bin/sh\necho test1",
-		"script2": "#!/bin/sh\necho test2",
-	}
-
-	for name, content := range scripts {
-		path := filepath.Join(dir, "scripts/install", name)
-		if err := os.WriteFile(path, []byte(content), 0755); err != nil {
+	// Create script1 and script2
+	for _, name := range []string{"script1", "script2"} {
+		scriptPath := filepath.Join(scriptsDir, name)
+		if err := os.WriteFile(scriptPath, []byte("#!/bin/sh\necho "+name), 0755); err != nil {
 			return err
 		}
 	}
 
-	// Create basic arara.yaml
-	yamlData := []byte(`
-name: test-config
-scripts:
-  install: []
-`)
-	return os.WriteFile(filepath.Join(dir, "arara.yaml"), yamlData, 0644)
+	// Create config
+	config := &config.DotfilesConfig{
+		Name:      "test-config",
+		Namespace: "test",
+		Scripts: struct {
+			Install []config.Script `yaml:"install,omitempty"`
+		}{
+			Install: []config.Script{
+				{
+					Name:        "script1",
+					Description: "Existing script 1",
+					Path:        "scripts/install/script1",
+				},
+			},
+		},
+	}
+
+	data, err := config.Marshal()
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(filepath.Join(dir, "arara.yaml"), data, 0644)
 }
 
 func setupConfigWithMetadata(dir string, metadata map[string]interface{}) error {

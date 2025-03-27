@@ -8,7 +8,6 @@ import (
 	"github.com/rwxrob/bonzai/cmds/help"
 	"github.com/rwxrob/bonzai/comp"
 	bonzaiVars "github.com/rwxrob/bonzai/vars"
-	"gopkg.in/yaml.v3"
 
 	"github.com/BuddhiLW/arara/internal/app/backup"
 	"github.com/BuddhiLW/arara/internal/app/build"
@@ -75,21 +74,16 @@ dotfiles management needs.
 		}
 
 		// Create a default configuration
-		config := createDefaultConfig()
+		conf := createDefaultConfig()
 
-		// Create file
-		file, err := os.Create("arara.yaml")
+		// Save the config
+		data, err := conf.Marshal()
 		if err != nil {
-			return fmt.Errorf("failed to create arara.yaml: %w", err)
+			return fmt.Errorf("failed to marshal config: %w", err)
 		}
-		defer file.Close()
 
-		// Use YAML encoder for better formatting
-		encoder := yaml.NewEncoder(file)
-		encoder.SetIndent(2)
-
-		if err := encoder.Encode(config); err != nil {
-			return fmt.Errorf("failed to encode config: %w", err)
+		if err := os.WriteFile("arara.yaml", data, 0644); err != nil {
+			return fmt.Errorf("failed to write arara.yaml: %w", err)
 		}
 
 		fmt.Println("Created arara.yaml in the current directory")
@@ -99,8 +93,8 @@ dotfiles management needs.
 }
 
 // createDefaultConfig creates a default configuration structure
-func createDefaultConfig() config.Config {
-	var conf config.Config
+func createDefaultConfig() config.DotfilesConfig {
+	var conf config.DotfilesConfig
 
 	// Basic metadata
 	conf.Name = "dotfiles"
@@ -207,6 +201,7 @@ var Cmd = &bonzai.Cmd{
 		compat.Cmd,    // Check system compatibility
 		create.Cmd,    // Create new resources
 		help.Cmd,      // Show help information
+		initCmd,       // Initialize new arara.yaml
 		install.Cmd,   // Install additional tools
 		link.Cmd,      // Create symlinks
 		list.Cmd,      // List available scripts
