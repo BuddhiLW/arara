@@ -319,6 +319,25 @@ The compatibility system allows scripts and build steps to define system require
 8. Add configuration validation
 9. Create comprehensive user documentation
 10. Implement plugin system for custom commands
+11. [x] `arara sync` (basic sync and chose conflits working; still experimental)
+   - Add atomic transactions with rollback support
+   - Implement interactive conflict resolution
+   - Add comprehensive test coverage
+   - Fix concurrent modification detection
+   - Improve test reliability
+   - Consider adding non-interactive mode option
+   - Consider adding dry-run capability
+   - Improve error messages
+12. [x] `arara list`
+   - [x] context aware
+   - [x] passing tests
+   - [x] actually working in personal dotfiles
+13. [x] `arara help`
+14. [ ] `arara build` (implemented; to be tests in a VBOX)
+15. [x] `arara install`
+16. [x] `arara create`
+17. [ ] `arara setup` (implemented; to be tests in a VBOX)
+
 
 ## Project Layout
 
@@ -1062,3 +1081,60 @@ arara var edit    # Edit variables in your default editor
 ```
 
 This state management allows Arara to maintain context across commands and sessions, particularly for namespace switching and dotfiles path resolution.
+
+# Sync Command Implementation Progress
+
+## Completed
+1. Implemented basic sync functionality to:
+   - Find executable scripts in scripts/install directory
+   - Add them to arara.yaml's install scripts section
+   - Preserve existing script descriptions
+
+2. Added atomic transactions with rollback support:
+   - Creates backup before modifications
+   - Restores backup on failure
+   - Detects concurrent modifications
+
+3. Implemented interactive conflict resolution:
+   - Shows conflicts between existing and new script descriptions
+   - Allows user to choose which version to keep
+   - Handles user cancellation gracefully
+
+4. Added comprehensive test coverage:
+   - Basic sync functionality
+   - Transaction handling
+   - Conflict resolution
+   - Mock stdin/stdout for interactive tests
+
+## Fixed Issues
+1. Resolved infinite loop in interactive tests by:
+   - Creating custom chooseFrom function
+   - Properly mocking stdin/stdout
+   - Adding test timeouts
+
+2. Fixed concurrent modification detection:
+   - Moved check to right before writing changes
+   - Improved hash comparison using bytes.Equal
+   - Added proper rollback on detection
+
+3. Fixed test reliability:
+   - Added mock input for all test cases
+   - Improved error handling and cleanup
+   - Made tests more deterministic
+
+## Current Status
+- All core functionality working
+- Tests passing
+- Interactive conflict resolution working in both tests and real usage
+
+## Next Steps
+1. Consider adding:
+   - Non-interactive mode option
+   - Dry-run capability
+   - Better error messages
+   - Progress indicators for large script sets
+
+2. Potential improvements:
+   - Script validation
+   - Parallel script processing
+   - Conflict prevention strategies
