@@ -173,11 +173,14 @@ Usage:
 		// Add new dependencies
 		added := 0
 		var newDeps []string
-		for _, dep := range args {
-			if !depsMap[dep] {
-				newDeps = append(newDeps, dep)
-				depsMap[dep] = true
-				added++
+		for _, arg := range args {
+			// Split in case an argument contains multiple packages
+			for _, dep := range strings.Fields(arg) {
+				if !depsMap[dep] {
+					newDeps = append(newDeps, dep)
+					depsMap[dep] = true
+					added++
+				}
 			}
 		}
 
@@ -220,8 +223,11 @@ Usage:
 
 		// Create a map of dependencies to remove
 		toRemove := make(map[string]bool)
-		for _, dep := range args {
-			toRemove[dep] = true
+		for _, arg := range args {
+			// Split in case an argument contains multiple packages
+			for _, dep := range strings.Fields(arg) {
+				toRemove[dep] = true
+			}
 		}
 
 		// Filter out the dependencies to remove
@@ -290,8 +296,15 @@ Usage:
 				return nil
 			}
 		} else {
-			// Use provided args as dependencies
-			deps = args
+			// Process args to get individual packages
+			for _, arg := range args {
+				// Split in case an argument contains multiple packages
+				for _, dep := range strings.Fields(arg) {
+					if dep != "" {
+						deps = append(deps, dep)
+					}
+				}
+			}
 		}
 
 		// Detect package manager
@@ -375,7 +388,18 @@ func loadDependencies() ([]string, error) {
 		return nil, fmt.Errorf("failed to load config for namespace %s: %w", activeNS, err)
 	}
 
-	return cfg.Dependencies, nil
+	// Process dependencies to ensure each entry is a single package
+	var flatDeps []string
+	for _, dep := range cfg.Dependencies {
+		// Split any multi-word dependencies into individual packages
+		for _, singleDep := range strings.Fields(dep) {
+			if singleDep != "" {
+				flatDeps = append(flatDeps, singleDep)
+			}
+		}
+	}
+
+	return flatDeps, nil
 }
 
 // saveDependenciesToConfig saves dependencies to the active namespace's arara.yaml
