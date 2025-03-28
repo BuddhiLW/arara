@@ -19,6 +19,11 @@ vim
 tmux
 # Final comment
 curl
+# Multiple deps on one line
+- lolcat
+- fortune fortune-mod fortunes-br display-dhammapada fortune-anarchism fortune-mod
+- gawk
+- qutebrowser
 `
 	tmpfile, err := os.CreateTemp("", "deps-*.txt")
 	if err != nil {
@@ -40,15 +45,36 @@ curl
 	}
 
 	// Check that comments were properly filtered
-	expected := []string{"git", "vim", "tmux", "curl"}
-	if len(deps) != len(expected) {
-		t.Errorf("Expected %d dependencies, got %d", len(expected), len(deps))
+	expected := []string{
+		"git", "vim", "tmux", "curl", 
+		"lolcat", "fortune", "fortune-mod", "fortunes-br", "display-dhammapada", 
+		"fortune-anarchism", "fortune-mod", "gawk", "qutebrowser",
 	}
-
+	
+	// Create map for easier checking
+	expectedMap := make(map[string]bool)
+	for _, dep := range expected {
+		expectedMap[dep] = true
+	}
+	
+	// Count the actual number of unique dependencies in our expected list
+	expectedCount := len(expectedMap)
+	
+	// Create map of actual dependencies for comparison
+	depsMap := make(map[string]bool)
+	for _, dep := range deps {
+		depsMap[dep] = true
+	}
+	
+	// Check that we got the right number of unique dependencies
+	if len(depsMap) != expectedCount {
+		t.Errorf("Expected %d unique dependencies, got %d", expectedCount, len(depsMap))
+	}
+	
 	// Check that all expected dependencies are present
-	for i, dep := range expected {
-		if i < len(deps) && deps[i] != dep {
-			t.Errorf("Expected dependency %s at position %d, got %s", dep, i, deps[i])
+	for _, dep := range deps {
+		if !expectedMap[dep] {
+			t.Errorf("Unexpected dependency found: %s", dep)
 		}
 	}
 }

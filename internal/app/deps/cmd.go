@@ -316,6 +316,7 @@ Usage:
 
 // readDepsFile reads a dependency file and returns a list of dependencies
 // ignoring lines that start with # or ##
+// Each dependency should be on its own line or separated by spaces
 func readDepsFile(path string) ([]string, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -331,7 +332,17 @@ func readDepsFile(path string) ([]string, error) {
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
-		deps = append(deps, line)
+		
+		// Handle multiple dependencies on one line by splitting on whitespace
+		lineDeps := strings.Fields(line)
+		for _, dep := range lineDeps {
+			// Ignore any YAML formatting or list markers
+			dep = strings.TrimPrefix(dep, "-")
+			dep = strings.TrimSpace(dep)
+			if dep != "" {
+				deps = append(deps, dep)
+			}
+		}
 	}
 
 	if err := scanner.Err(); err != nil {
