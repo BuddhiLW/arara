@@ -27,6 +27,7 @@ type PackageManager struct {
 	Name          string
 	InstallCmd    string
 	InstallPrefix []string
+	YesFlag       string  // Flag to auto-accept prompts
 }
 
 var packageManagers = map[string]PackageManager{
@@ -34,26 +35,31 @@ var packageManagers = map[string]PackageManager{
 		Name:          "apt",
 		InstallCmd:    "install",
 		InstallPrefix: []string{"sudo", "apt-get"},
+		YesFlag:       "-y",
 	},
 	"dnf": {
 		Name:          "dnf",
 		InstallCmd:    "install",
 		InstallPrefix: []string{"sudo", "dnf"},
+		YesFlag:       "-y",
 	},
 	"yum": {
 		Name:          "yum",
 		InstallCmd:    "install",
 		InstallPrefix: []string{"sudo", "yum"},
+		YesFlag:       "-y",
 	},
 	"pacman": {
 		Name:          "pacman",
 		InstallCmd:    "-S",
 		InstallPrefix: []string{"sudo", "pacman"},
+		YesFlag:       "--noconfirm",
 	},
 	"brew": {
 		Name:          "brew",
 		InstallCmd:    "install",
 		InstallPrefix: []string{"brew"},
+		YesFlag:       "", // Homebrew doesn't prompt by default
 	},
 }
 
@@ -315,7 +321,16 @@ Usage:
 
 		// Run install command
 		fmt.Printf("Installing %d dependencies using %s...\n", len(deps), pm.Name)
+		
+		// Build command with the yes flag if available
 		cmdArgs := append(pm.InstallPrefix, pm.InstallCmd)
+		
+		// Add yes flag if provided
+		if pm.YesFlag != "" {
+			cmdArgs = append(cmdArgs, pm.YesFlag)
+		}
+		
+		// Add all dependencies
 		cmdArgs = append(cmdArgs, deps...)
 		
 		fmt.Printf("Running: %s\n", strings.Join(cmdArgs, " "))

@@ -124,17 +124,17 @@ func TestPackageManagerCommands(t *testing.T) {
 		{
 			manager: packageManagers["apt"],
 			deps:    []string{"git", "vim"},
-			want:    []string{"sudo", "apt-get", "install", "git", "vim"},
+			want:    []string{"sudo", "apt-get", "install", "-y", "git", "vim"},
 		},
 		{
 			manager: packageManagers["pacman"],
 			deps:    []string{"git", "vim"},
-			want:    []string{"sudo", "pacman", "-S", "git", "vim"},
+			want:    []string{"sudo", "pacman", "-S", "--noconfirm", "git", "vim"},
 		},
 		{
 			manager: packageManagers["brew"],
 			deps:    []string{"git", "vim"},
-			want:    []string{"brew", "install", "git", "vim"},
+			want:    []string{"brew", "install", "git", "vim"}, // No yes flag for brew
 		},
 	}
 
@@ -142,6 +142,12 @@ func TestPackageManagerCommands(t *testing.T) {
 		var cmdArgs []string
 		cmdArgs = append(cmdArgs, tc.manager.InstallPrefix...)
 		cmdArgs = append(cmdArgs, tc.manager.InstallCmd)
+		
+		// Add yes flag if provided
+		if tc.manager.YesFlag != "" {
+			cmdArgs = append(cmdArgs, tc.manager.YesFlag)
+		}
+		
 		cmdArgs = append(cmdArgs, tc.deps...)
 
 		if len(cmdArgs) != len(tc.want) {
