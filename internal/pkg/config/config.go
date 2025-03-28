@@ -177,8 +177,9 @@ type NamespaceConfig struct {
 }
 
 type NSInfo struct {
-	Path     string `yaml:"path"`
-	LocalBin string `yaml:"local-bin"`
+	Path     string   `yaml:"path"`
+	LocalBin string   `yaml:"local-bin"`
+	Dirs     []string `yaml:"backup_dirs"`
 }
 
 var NewGlobalConfig = func() (*GlobalConfig, error) {
