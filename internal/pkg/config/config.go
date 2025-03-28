@@ -24,6 +24,8 @@ type DotfilesConfig struct {
 	Env         map[string]string `yaml:"env,omitempty"`
 	Namespace   string            `yaml:"namespace"`
 
+	Dependencies []string `yaml:"dependencies,omitempty"`
+
 	Setup struct {
 		BackupDirs  []string `yaml:"backup_dirs"`
 		CoreLinks   []Link   `yaml:"core_links"`

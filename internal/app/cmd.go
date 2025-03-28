@@ -13,6 +13,7 @@ import (
 	"github.com/BuddhiLW/arara/internal/app/build"
 	"github.com/BuddhiLW/arara/internal/app/compat"
 	"github.com/BuddhiLW/arara/internal/app/create"
+	"github.com/BuddhiLW/arara/internal/app/deps"
 	"github.com/BuddhiLW/arara/internal/app/install"
 	"github.com/BuddhiLW/arara/internal/app/link"
 	"github.com/BuddhiLW/arara/internal/app/list"
@@ -99,6 +100,14 @@ func createDefaultConfig() config.DotfilesConfig {
 	// Basic metadata
 	conf.Name = "dotfiles"
 	conf.Description = "Personal dotfiles configuration"
+
+	// Example dependencies
+	conf.Dependencies = []string{
+		"git",
+		"curl",
+		"vim",
+		"tmux",
+	}
 
 	// Environment variables
 	conf.Env = map[string]string{
@@ -200,6 +209,7 @@ var Cmd = &bonzai.Cmd{
 		build.Cmd,     // Execute build steps
 		compat.Cmd,    // Check system compatibility
 		create.Cmd,    // Create new resources
+		deps.Cmd,      // Manage system dependencies
 		help.Cmd,      // Show help information
 		initCmd,       // Initialize new arara.yaml
 		install.Cmd,   // Install additional tools
@@ -218,6 +228,7 @@ var Cmd = &bonzai.Cmd{
 - build:     Execute or list build steps
 - compat:    Check system compatibility for scripts
 - create:    Create new resources (install scripts, build steps)
+- deps:      Manage system dependencies
 - install:   Install additional tools
 - setup:     Core setup operations (backup, link, restore)
 - list:      List available installation scripts

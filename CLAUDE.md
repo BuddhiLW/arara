@@ -337,6 +337,8 @@ The compatibility system allows scripts and build steps to define system require
 15. [x] `arara install`
 16. [x] `arara create`
 17. [ ] `arara setup` (implemented; to be tests in a VBOX)
+18. [ ] Create a standardized way to document install scripts (automatically picked up by `arara sync`)
+19. [ ] Create a `bin` type of command for `create`; `arara create bin <name>`
 
 
 ## Project Layout
