@@ -35,7 +35,7 @@ var packageManagers = map[string]PackageManager{
 		Name:          "apt",
 		InstallCmd:    "install",
 		InstallPrefix: []string{"sudo", "apt-get"},
-		YesFlag:       "-y -qq",
+		YesFlag:       "-yqq",
 	},
 	"dnf": {
 		Name:          "dnf",
