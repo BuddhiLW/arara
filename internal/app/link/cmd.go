@@ -4,10 +4,45 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/rwxrob/bonzai"
 	"github.com/rwxrob/bonzai/cmds/help"
 )
+
+// shouldRemoveExisting checks if dst exists, is non-empty, and if a backup directory
+// (starting with "dotbk-") exists in home. If so, returns true.
+func shouldRemoveExisting(dst, home string) bool {
+	info, err := os.Stat(dst)
+	if err != nil {
+		// dst doesn't exist
+		return false
+	}
+	if !info.IsDir() {
+		// if it's not a directory, we consider removal in the caller if needed; here we focus on directories
+		return false
+	}
+	entries, err := os.ReadDir(dst)
+	if err != nil {
+		return false
+	}
+	if len(entries) == 0 {
+		// empty directory is safe
+		return false
+	}
+
+	// Check for existence of a backup directory in home (backup directories begin with "dotbk-")
+	homeEntries, err := os.ReadDir(home)
+	if err != nil {
+		return false
+	}
+	for _, entry := range homeEntries {
+		if entry.IsDir() && strings.HasPrefix(entry.Name(), "dotbk-") {
+			return true
+		}
+	}
+	return false
+}
 
 var Cmd = &bonzai.Cmd{
 	Name:  "link",
@@ -31,6 +66,15 @@ var Cmd = &bonzai.Cmd{
 		}
 
 		for _, link := range coreLinks {
+			// if destination exists and is non-empty, and a backup exists, remove it first
+			if _, err := os.Lstat(link.dst); err == nil {
+				if shouldRemoveExisting(link.dst, home) {
+					if err := os.RemoveAll(link.dst); err != nil {
+						return fmt.Errorf("failed to remove existing directory %s: %w", link.dst, err)
+					}
+				}
+			}
+
 			if err := os.Symlink(link.src, link.dst); err != nil {
 				return fmt.Errorf("failed to create link %s -> %s: %w", link.src, link.dst, err)
 			}
@@ -51,6 +95,12 @@ var Cmd = &bonzai.Cmd{
 		}
 
 		for _, link := range configLinks {
+			// For config links, if a file or symlink already exists, remove it.
+			if _, err := os.Lstat(link.dst); err == nil {
+				if err := os.RemoveAll(link.dst); err != nil {
+					return fmt.Errorf("failed to remove existing file/directory %s: %w", link.dst, err)
+				}
+			}
 			if err := os.Symlink(link.src, link.dst); err != nil {
 				return fmt.Errorf("failed to create link %s -> %s: %w", link.src, link.dst, err)
 			}
