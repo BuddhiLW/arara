@@ -35,7 +35,7 @@ var packageManagers = map[string]PackageManager{
 		Name:          "apt",
 		InstallCmd:    "install",
 		InstallPrefix: []string{"sudo", "apt-get"},
-		YesFlag:       "-yqq",
+		YesFlag:       "-y",
 	},
 	"dnf": {
 		Name:          "dnf",
@@ -83,10 +83,10 @@ Dependencies are stored in the active namespace's arara.yaml configuration file.
 }
 
 var syncCmd = &bonzai.Cmd{
-	Name:  "sync",
-	Alias: "s",
-	Usage: "sync [file]",
-	Short: "sync dependencies from a file",
+	Name:    "sync",
+	Alias:   "s",
+	Usage:   "sync [file]",
+	Short:   "sync dependencies from a file",
 	Long: `
 Sync dependencies from a file with #-commented-deps format to your arara.yaml configuration.
 
@@ -150,10 +150,10 @@ This will display all dependencies that are currently defined.
 }
 
 var addCmd = &bonzai.Cmd{
-	Name:  "add",
-	Alias: "a",
-	Short: "add dependencies",
-	Usage: "add <package1> [package2...]",
+	Name:    "add",
+	Alias:   "a",
+	Short:   "add dependencies",
+	Usage:   "add <package1> [package2...]",
 	Long: `
 Add one or more dependencies to the active namespace's arara.yaml configuration.
 
@@ -207,10 +207,10 @@ Usage:
 }
 
 var removeCmd = &bonzai.Cmd{
-	Name:  "remove",
-	Alias: "rm",
-	Short: "remove dependencies",
-	Usage: "remove <package1> [package2...]",
+	Name:    "remove",
+	Alias:   "rm",
+	Short:   "remove dependencies",
+	Usage:   "remove <package1> [package2...]",
 	Long: `
 Remove one or more dependencies from the active namespace's arara.yaml configuration.
 
@@ -335,6 +335,20 @@ Usage:
 
 		fmt.Printf("Running: %s\n", strings.Join(cmdArgs, " "))
 		cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
+		
+		// Set environment variables to avoid interactive prompts
+		env := os.Environ()
+		
+		// For Debian/Ubuntu packages (avoid debconf prompts)
+		env = append(env, "DEBIAN_FRONTEND=noninteractive")
+		
+		// For tzdata and other packages that ask for input
+		env = append(env, "DEBCONF_NONINTERACTIVE_SEEN=true")
+		env = append(env, "DEBCONF_NOWARNINGS=yes")
+		
+		// Apply the environment
+		cmd.Env = env
+		
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 
@@ -360,7 +374,7 @@ func readDepsFile(path string) ([]string, error) {
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
-
+		
 		// Handle multiple dependencies on one line by splitting on whitespace
 		lineDeps := strings.Fields(line)
 		for _, dep := range lineDeps {
@@ -583,10 +597,10 @@ func fileHash(path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	
 	go func() {
 		defer stdin.Close()
-
+		
 		for {
 			n, err := h.Read(buf)
 			if n > 0 {
@@ -597,12 +611,12 @@ func fileHash(path string) ([]byte, error) {
 			}
 		}
 	}()
-
+	
 	out, err := hasher.Output()
 	if err != nil {
 		return nil, err
 	}
-
+	
 	// Extract just the hash part
 	hash := strings.Split(string(out), " ")[0]
 	return []byte(hash), nil
